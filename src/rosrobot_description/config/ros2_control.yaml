@@ -1,0 +1,66 @@
+# ==============================================================================
+# ros2_control.yaml — 同步后驱控制器配置 (Gazebo Harmonic / gz_ros2_control)
+#
+# 控制方案: 同步后驱 + 前轮转向 (Ackermann-style)
+#   - joint_state_broadcaster: 读取 Gazebo 关节状态 → /joint_states
+#   - rear_wheel_controller:   velocity 控制器 → lh_joint + rh_joint (同速)
+#   - steering_controller:     position 控制器 → lq_joint + rq_joint (同角)
+#
+# 与差速方案的区别:
+#   - 不使用 diff_drive_controller（那会叠加轮速差）
+#   - 后轮速度由 velocity_controllers/JointGroupVelocityController 控制
+#   - 前轮转角由 position_controllers/JointGroupPositionController 控制
+#   - /cmd_vel → 控制器命令 的映射由 cmd_vel_gazebo_bridge.py 完成
+#
+# 注意: 此文件路径在 URDF 的 GazeboSimROS2ControlPlugin 参数中指定
+# ==============================================================================
+
+controller_manager:
+  ros__parameters:
+    update_rate: 50   # Hz — 控制器更新频率
+
+    # ★ 仿真时间同步 — Gazebo Harmonic 必需
+    use_sim_time: true
+
+    # ---- 1) 关节状态广播（只读）----------------------------------------
+    # 从 Gazebo 物理引擎读取关节位置/速度，发布到 /joint_states
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    # ---- 2) 后轮同步速度控制器 -----------------------------------------
+    # 控制 lh_joint + rh_joint 的转速
+    # 接收 Float64MultiArray [left_vel, right_vel] — 两个元素始终相同
+    rear_wheel_controller:
+      type: velocity_controllers/JointGroupVelocityController
+
+    # ---- 3) 前轮位置控制器 --------------------------------------------
+    # 控制 lq_joint + rq_joint 的转向角
+    # 接收 Float64MultiArray [left_angle, right_angle] — 两个元素始终相同
+    steering_controller:
+      type: position_controllers/JointGroupPositionController
+
+# ==============================================================================
+
+# ----- 后轮速度控制器参数 -----
+rear_wheel_controller:
+  ros__parameters:
+    joints:
+      - lh_joint
+      - rh_joint
+    command_interfaces:
+      - velocity
+    state_interfaces:
+      - position
+      - velocity
+
+# ----- 前轮位置控制器参数 -----
+steering_controller:
+  ros__parameters:
+    joints:
+      - lq_joint
+      - rq_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity

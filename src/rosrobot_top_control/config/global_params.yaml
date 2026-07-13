@@ -1,0 +1,20 @@
+# =============================================================================
+# 全局参数配置 — 阿克曼小车 ROS2 Jazzy
+# =============================================================================
+
+vehicle:
+  wheelbase: 0.30           # 轴距 L (m) — 需实测
+  track_width: 0.20         # 后轮轮距 W (m) — 需实测
+  wheel_radius: 0.0325      # 后轮半径 (m) — 需实测
+  max_steering_angle: 0.52  # 最大前轮转向角 ~30° (rad)
+  max_linear_speed: 1.0     # 最大线速度 (m/s)
+  max_angular_speed: 2.0    # 最大角速度 (rad/s)
+
+# 系统基准频率（所有节点同步）
+system:
+  base_frequency: 50.0      # 50 Hz 主时钟
+  dt: 0.02                  # 20 ms 采样周期
+
+# IMU 参数（见 src/imu_driver/config/imu_params.yaml 详细配置）
+# 里程计参数（见 src/joystick_bridge/config/vehicle_params.yaml）
+# EKF 参数（见 src/robot_localization_config/config/ekf_params.yaml）

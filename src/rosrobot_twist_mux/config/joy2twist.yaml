@@ -1,0 +1,9 @@
+/joy2twist:
+  ros__parameters:
+    axis_linear_x: 1
+    axis_angular_z: 0
+    max_linear_speed: 0.01
+    max_angular_speed: 1.0
+    deadzone: 0.05
+    invert_linear: false
+    invert_angular: false
