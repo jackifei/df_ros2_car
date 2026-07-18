@@ -1,0 +1,15 @@
+slam_toolbox:
+  ros__parameters:
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan
+    mode: mapping
+    resolution: 0.05
+    max_laser_range: 12.0
+    use_map_saver: true
+    loop_search_radius: 5.0       # 闭环检测搜索半径
+    loop_closure_min_score: 0.7   # 闭环匹配最小分数
+    do_loop_closing: true         # 启用闭环检测
+    scan_buffer_size: 10          # 扫描缓冲区大小
+    enable_interactive_mode: false # 非交互模式节省内存

@@ -1,0 +1,13 @@
+
+rosrobot_odom:
+  ros__parameters:
+    # --- 车辆物理参数 ---
+    # 启用 TF 发布 (关键！)
+    # publish_tf: true
+    wheelbase: 0.36                   # 轴距 L (m)
+    track_width: 0.39                 # 后轮轮距
+    wheel_radius: 0.0625             # 轮子半径
+    max_speed: 0.3          # 最大速度
+    enable_lowpass: True             # 陀螺仪角
+    lowpass_cutoff_hz: 15.0            # 偏航修正
+    publish_rate: 50.0             # 发布帧率 (m/s)

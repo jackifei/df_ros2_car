@@ -11,7 +11,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (f'share/{package_name}/launch', ['launch/joystick_bridge.launch.py']),
-        (f'share/{package_name}/config', ['config/vehicle_params.yaml'])
+        (f'share/{package_name}/config', ['config/vehicle_params.yaml']),
+        (f'share/{package_name}/config', ['config/wheel_odom_fusion_node.yaml'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,

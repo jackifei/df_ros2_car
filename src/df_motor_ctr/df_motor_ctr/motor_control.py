@@ -7,7 +7,8 @@ from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 import logging
-from sensor_msgs.msg import JointState,Float64, Float64MultiArray
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Float64, Float64MultiArray
 import json
 from rclpy.node import Node             # ROS2 节点类
 import math
@@ -35,6 +36,15 @@ class channel_MBRTU(Node):
 
 	def __init__(self,name,port: str):
 		super().__init__(name)
+
+		 # ---- 声明可配置参数 ----
+		self.declare_parameter('port', '/dev/ttyUSB0')
+		self.declare_parameter('wheel_track', 0.39)
+		self.declare_parameter('wheel_diameter_m', 0.125)
+		self.port = self.get_parameter('port').value
+		self.wheel_track = self.get_parameter('wheel_track').value
+		self.wheel_diameter_m = self.get_parameter('wheel_diameter_m').value
+
 		# 创建ROS2订阅节点 需要订阅后轮速度节点，用来数据计算
 		# 此处需要修改，上一个话题的发布是50HZ，对于点击驱动来说，相应不了这么高的频率
 		# 由于发布频率的问题，需要修改为转速当变化时才进行写入，并且为int类型，下位机采用modbus协议，只能是int
@@ -62,12 +72,12 @@ class channel_MBRTU(Node):
 		self.l_dir = 0      # 左轮子前后旋转方向
 		self.r_dir = 0      # 右轮子前后旋转方向
 		
-		self.port = port
+		# self.port = port
 		self.slave1 = 1
 		self.slave2 = 2
 
-		self.wheel_diameter_mm = 0.125   # 后轮驱动轮的直径
-		self.wheel_track = 0.36   # 后轮轮距
+		# self.wheel_diameter_m = 0.125   # 后轮驱动轮的直径
+		#self.wheel_track = 0.39   # 后轮轮距
 
 		self._stop_event = threading.Event()
 		self._lock = threading.Lock()
@@ -90,7 +100,7 @@ class channel_MBRTU(Node):
 		self.open_port()
 
 
-	def linear_velocity_to_rpm(self,v: float) -> float:
+	def linear_velocity_to_rpm(self,v) -> float:
 		"""
 		将线速度（m/s）转换为轮子转速（rpm）（单位：米）
 
@@ -111,7 +121,7 @@ class channel_MBRTU(Node):
 		rpm = v * 30.0 / (math.pi * radius_m)
 		return rpm
 
-	def rpm_to_linear_velocity(self,n: float) -> float:
+	def rpm_to_linear_velocity(self,n) -> float:
 		"""
 		将轮子转速（rpm）转换为线速度（m/s）（单位：米）
 
@@ -138,19 +148,11 @@ class channel_MBRTU(Node):
 		"""
 		self.l_speed = self.linear_velocity_to_rpm(msg.data[0])
 		self.r_speed = self.linear_velocity_to_rpm(msg.data[1])
+		# self.get_logger().info(f'{self.l_speed}  {self.r_speed}')
 		self.write_l_speed = int(abs(self.l_speed))
 		self.write_r_speed = int(abs(self.r_speed))
 
 		if self.l_speed >= 0 and self.r_speed >=0 :
-			if self.last_l_speed_ != self.write_l_speed or self.last_r_speed_ != self.write_r_speed:
-				self.l_dir = 0      # 左轮子前后旋转方向
-				self.r_dir = 1      # 右轮子前后旋转方向
-
-				self.last_l_speed_ = self.write_l_speed
-				self.last_r_speed_ = self.write_r_speed
-				self.write_speed_dir = True
-				self.get_logger().info(f'写入速度:方向 + ')
-		if self.l_speed < 0 and self.r_speed < 0:
 			if self.last_l_speed_ != self.write_l_speed or self.last_r_speed_ != self.write_r_speed:
 				self.l_dir = 1      # 左轮子前后旋转方向
 				self.r_dir = 0      # 右轮子前后旋转方向
@@ -158,7 +160,16 @@ class channel_MBRTU(Node):
 				self.last_l_speed_ = self.write_l_speed
 				self.last_r_speed_ = self.write_r_speed
 				self.write_speed_dir = True
-				self.get_logger().info(f'写入速度 :方向 - ')
+				# self.get_logger().info(f'写入速度:方向 + ')
+		if self.l_speed < 0 and self.r_speed < 0:
+			if self.last_l_speed_ != self.write_l_speed or self.last_r_speed_ != self.write_r_speed:
+				self.l_dir = 0      # 左轮子前后旋转方向
+				self.r_dir = 1      # 右轮子前后旋转方向
+
+				self.last_l_speed_ = self.write_l_speed
+				self.last_r_speed_ = self.write_r_speed
+				self.write_speed_dir = True
+				# self.get_logger().info(f'写入速度 :方向 - ')
 
 
 	def pull_wheel(self,v_l,v_r,l_dir,r_dir):
@@ -166,12 +177,12 @@ class channel_MBRTU(Node):
 		self.ser.write_registers(
 			address=0xF6,  # 寄存器起始地址（0x00F3）
 			values=[(l_dir * 256) + 100, v_l, 0],
-			device_id=self.slave1  # 从机地址
+			device_id=self.slave2  # 从机地址
 		)
 		self.ser.write_registers(
 			address=0xF6,  # 寄存器起始地址（0x00F3）
 			values=[(r_dir * 256) + 100, v_r, 0],
-			device_id=self.slave2  # 从机地址
+			device_id=self.slave1  # 从机地址
 		)
 
 	"""打开端口"""
@@ -199,7 +210,7 @@ class channel_MBRTU(Node):
 			self.get_logger().info(f'5设置初始速度0,初始方向')
 			self.pull_wheel(v_l=0,v_r = 0,l_dir=0,r_dir=0)
 			time.sleep(0.1)
-			self.get_logger().info(f'启动电机控制线程')
+			self.get_logger().info(f'6启动电机控制线程')
 			self.commn_thread.start()
 			return True
 		except Exception as e:
@@ -251,14 +262,15 @@ class channel_MBRTU(Node):
 				try:
 					result_pos_l,result_rpm_l, moto_status_l_l,moto_status_r_r = self.read_slave_data(slave=self.slave1)
 					result_pos_r,result_rpm_r, moto_status_l_r,moto_status_r_r = self.read_slave_data(slave=self.slave2)
-
+					
 					# 通过转速rpm计算线速度，并且添加到twist中，进行发布
 					v_l =  self.rpm_to_linear_velocity(result_rpm_l)
-					v_r  =  self.rpm_to_linear_velocity(result_rpm_r)
+					v_r  =  self.rpm_to_linear_velocity(result_rpm_r) * -1
+					# self.get_logger().info(f'速度L{v_l} 速度R{v_r} ') 
 					# 线速度
 					self.motor_status_data.linear.x  = (v_l + v_r) / 2.0
 					# 角速度
-					self.motor_status_data.linear.z  = (v_r - v_l) / self.wheel_track
+					self.motor_status_data.linear.z  = (v_l - v_r) / self.wheel_track
 					self.cmd_vel_rt_pub.publish(self.motor_status_data)             # 发布twist
 					#self.get_logger().info(f'速度{result_rpm_l}方向{result_rpm_r}') 
 
@@ -307,9 +319,9 @@ class channel_MBRTU(Node):
 		rpm_status = self.ser.read_holding_registers(address=53, count=2, device_id=slave)
 		rpm_registers = rpm_status.registers
 		if rpm_registers[0] == 0:
-			result_rpm = rpm_registers[1]/10
+			result_rpm = rpm_registers[1]
 		else:
-			result_rpm = -rpm_registers[1] / 10
+			result_rpm = -rpm_registers[1]
 		#  print(f"{slave}实时速度 {result_rpm}")
 		#  # ------------------使能状态
 		motor_status = self.ser.read_holding_registers(address=58, count=1, device_id=slave)

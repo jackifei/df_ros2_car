@@ -10,6 +10,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (f'share/{package_name}/config', ['config/motor_control.yaml']),
+        (f'share/{package_name}/config', ['config/wheel_dir_pwm.yaml'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,

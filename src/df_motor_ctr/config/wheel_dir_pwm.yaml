@@ -1,0 +1,5 @@
+/wheel_dir_pwm:
+  ros__parameters:
+    port: '/dev/ttyUSB1'   # 使用左摇杆进行前后控制
+    baudrate: 115200  # 使用右摇杆进行左右控制
+    timeout: 0.5  # 最大线速度

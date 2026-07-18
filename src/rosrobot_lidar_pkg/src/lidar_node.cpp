@@ -35,7 +35,7 @@ public:
         : Node("lidar_node"), fd_(-1), is_shutdown_(false), last_point_angle_(0.0), scan_count_(0)
     {
         // 1. 声明并获取参数
-        this->declare_parameter<std::string>("port_name", "/dev/ttyACM0");
+        this->declare_parameter<std::string>("port_name", "/dev/ttyACM1");
         this->declare_parameter<std::string>("frame_id", "laser_frame");
         
         // 滤波相关参数

@@ -62,7 +62,7 @@ class JoystickBridgeNode(Node):
         # ---- 核心模块 ----  
         # wheelbase:   轴距 L — 前后轴间距 (m)
         # track_width: 后轮轮距 W — 左右后轮间距 (m)
-        self.ackermann = AckermannDifferential(0.36, 0.39)
+        self.ackermann = AckermannDifferential(wheelbase=0.36, track_width=0.39)  # 30度
         # self.ackermann = AckermannDifferential(wheelbase, track_width)
         # self.odometry = WheelOdometry(self, track_width, self.publish_rate)
 
@@ -78,11 +78,11 @@ class JoystickBridgeNode(Node):
             10
         )
 
-        # ---- 创建轮速发布者 ----
+        # ---- 创建轮速发布 ----
         # 后轮速度（使用两个 Float64 话题，兼容性好，无需编译自定义消息）
         self.left_right_wheel_pub = self.create_publisher(Float64MultiArray, '/wheel_control/leftright', 10)
         # self.right_wheel_pub = self.create_publisher(Float64, '/wheel_speeds/right', 10)
-        # ---- 创建转向角度发布者 ----
+        # ---- 创建转向角度发布 ----
         self.left_right_dir_pub = self.create_publisher(Float64, '/wheel_control/dir', 10)
         # ---- 50Hz 主循环定时器 ----
         timer_period = 1.0 / self.publish_rate  # 0.02s
@@ -138,6 +138,8 @@ class JoystickBridgeNode(Node):
 
         v, omega = self._latest_twist
 
+
+        # self.get_logger().info(f'{v}   {omega}')
         # 1. 阿克曼电子差速计算
         v_left, v_right, steering_angle = self.ackermann.compute_from_twist(v, omega)
 

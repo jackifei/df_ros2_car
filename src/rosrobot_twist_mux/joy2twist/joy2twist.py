@@ -33,8 +33,8 @@ class joy2twist(Node):
 
         # ---- 声明参数 ----
         self.declare_parameter('axis_linear_x', 1)      # 左摇杆上下
-        self.declare_parameter('axis_angular_z', 0)     # 右摇杆左右
-        self.declare_parameter('max_linear_speed', 0.01) # m/s
+        self.declare_parameter('axis_angular_z', 3)     # 右摇杆左右
+        self.declare_parameter('max_linear_speed', 0.1) # m/s
         self.declare_parameter('max_angular_speed', 1.0)# rad/s
         self.declare_parameter('deadzone', 0.05)
         self.declare_parameter('invert_linear', False)

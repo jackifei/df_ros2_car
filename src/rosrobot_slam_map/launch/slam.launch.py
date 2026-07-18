@@ -1,0 +1,42 @@
+from launch import LaunchDescription
+from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+import os
+
+def generate_launch_description():
+    # Rviz2 配置文件路径（使用 lidar_pkg 包中的 config/slam.rviz）
+    rviz_config_file = os.path.join(
+        get_package_share_directory('lidar_pkg'),
+        'config',
+        'slam.rviz'
+    )
+
+
+    return LaunchDescription([
+        # SLAM Toolbox 节点
+        Node(
+            package='slam_toolbox',
+            executable='sync_slam_toolbox_node',
+            name='slam_toolbox',
+            output='screen',
+            parameters=[{
+                'odom_frame': 'odom',
+                'map_frame': 'map',
+                'base_frame': 'base_link',
+                'scan_topic': '/scan',
+                'mode': 'mapping',
+                'resolution': 0.05,
+                'max_laser_range': 12.0,
+                'use_map_saver': True,
+            }]
+        ),
+
+        # Rviz2 可视化窗口
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            arguments=['-d', rviz_config_file],
+            output='screen',
+        ),
+    ])

@@ -5,6 +5,8 @@ from sensor_msgs.msg import Joy
 import serial
 import serial.tools.list_ports
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Float64, Float64MultiArray
+import math
 
 
 class JoyToServoNode(Node):
@@ -30,58 +32,42 @@ class JoyToServoNode(Node):
 
         # ---- 订阅 joy 话题 ----
         self.subscription = self.create_subscription(
-            Joy,
-            'joy',
-            self.joy_callback,
+            Float64,
+            '/wheel_control/dir',
+            self.dir_callback,
             10
         )
 
         # 创建前轮转向角度的位置发布话题
-        self.pub = self.create_publisher(JointState, 'df_dir_status', 10)
-        self.motor_status_data = JointState()
-        self.motor_status_data.position = [0.0]
+        self.pub = self.create_publisher(Float64, '/df_dir_rt', 10)
+        self.motor_status_data = Float64()
+        self.motor_status_data.data = 0.0
         
         self.get_logger().info('🎮 等待手柄数据...')
 
-    def joy_callback(self, msg: Joy):
+    def dir_callback(self, msg: Float64):
         """收到手柄数据时自动调用"""
         # ---------- 用户需在此处实现角度计算 ----------
-        angle = self.calculate_angle(msg)
+        angle =  (msg.data / math.pi) * 180
         # self.get_logger().info(f'🎮 {angle}...')
         # ----------------------------------------------
         if angle is None:
             return  # 返回 None 则不发送
         # 限幅 0~180
-        angle = max(1.0, min(180.0, angle))
+        # angle = max(1.0, min(180.0, angle)) # 取消限制幅度，通过前序话题进行限制
         # 格式化发送：保留一位小数 + 换行符
         cmd = f"{angle:.1f}\n"
         try:
             self.ser.write(cmd.encode())
             # self.get_logger().info(f'📤 发送: {cmd.strip()}')
-            self.motor_status_data.position = [angle]
+            self.motor_status_data.data = angle
             self.pub.publish(self.motor_status_data) 
         except serial.SerialTimeoutException:
             self.get_logger().info('⏳ 串口写入超时')
         except Exception as e:
             self.get_logger().info(f'❌ 串口写入错误: {e}')
 
-    def calculate_angle(self, msg: Joy) -> float:
-        """
-        【用户自定义函数】根据 joy 消息计算舵机角度
-        返回值: 0.0 ~ 180.0 的浮点数，或 None（不发送）
-        """
-        # ========== 请在此处编写您的映射逻辑 ==========
-        # 默认示例：使用 axes[0]（左右摇杆 -1~1）映射到 0~180°
-        # 死区设置
-        if msg.axes[0] < -0.9:
-             axis_val = -0.9
-        elif msg.axes[0] > 0.9:
-             axis_val = 0.9
-        else:
-            axis_val = msg.axes[0]          # -1 ~ 1
-        angle = (axis_val + 1.0) * 90.0 # 映射到 0 ~ 180
-        return angle
-        # ==============================================
+    
 
     def destroy_node(self):
         """节点销毁时关闭串口"""

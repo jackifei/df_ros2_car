@@ -34,7 +34,7 @@ class AckermannDifferential:
         )
     """
 
-    def __init__(self, wheelbase: float, track_width: float,max_steering_angle: float = math.pi / 4):
+    def __init__(self, wheelbase: float, track_width: float,max_steering_angle: float = math.pi / 6):
         """
         Args:
             wheelbase:   轴距 L — 前后轴间距 (m)
@@ -85,7 +85,7 @@ class AckermannDifferential:
         if steering_angle > 0:          # 左转：左内右外
             return v_left, v_right
         elif steering_angle < 0:        # 右转：右内左外
-            return v_left, v_right
+            return v_right, v_left
         else:                           # 直行（前面已过滤，保留防御性代码）
             return v_left, v_right
         
@@ -94,7 +94,7 @@ class AckermannDifferential:
     def steering_angle_from_twist(self, linear_vel: float, angular_vel: float) -> float:
         """
         从线速度和角速度反算等效前轮转向角
-
+        self.max_steering = math.radians(30)  # ≈ 0.5236 rad
         用于手柄输入场景：手柄发布 Twist（v, ω），
         需要反算出对应的前轮转向角 δ。
 
@@ -111,10 +111,15 @@ class AckermannDifferential:
             # 正常行驶: δ = atan(L × ω / v)
             raw = self.L * angular_vel / linear_vel
             angle = math.atan(raw)
+            # 将转向角限制在 ±30度（±max_steering）范围内
             return max(-self.max_steering, min(self.max_steering, angle))
         else:
-            # 原地旋转: 直接返回角速度作为转向指令
-            return float(angular_vel)
+            # 将角速度映射到转向角，gain 可根据实际调试确定
+            # 例如：当 ω = 1.0 rad/s 时，希望转向角达到满偏 30度
+            gain = self.max_steering / 1.0  # 1.0 rad/s 对应满偏
+            angle = angular_vel * gain
+            return max(-self.max_steering, min(self.max_steering, angle))
+       
 
     def compute_from_twist(self, linear_vel: float, angular_vel: float) -> tuple:
         """

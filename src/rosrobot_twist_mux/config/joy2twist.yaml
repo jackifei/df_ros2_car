@@ -1,9 +1,9 @@
 /joy2twist:
   ros__parameters:
-    axis_linear_x: 1
-    axis_angular_z: 0
-    max_linear_speed: 0.01
-    max_angular_speed: 1.0
-    deadzone: 0.05
-    invert_linear: false
-    invert_angular: false
+    axis_linear_x: 1   # 使用左摇杆进行前后控制
+    axis_angular_z: 3  # 使用右摇杆进行左右控制
+    max_linear_speed: 0.1  # 最大线速度
+    max_angular_speed: 1.0  # 最大角速度
+    deadzone: 0.05    # 死区限制
+    invert_linear: false    # 反转线速度
+    invert_angular: false    # 反转角速度

@@ -1,0 +1,6 @@
+/motor_control:
+  ros__parameters:
+    port: '/dev/ttyUSB0'   # 使用左摇杆进行前后控制
+    wheel_track: 0.39   # 后轮轮距
+    wheel_diameter_m: 0.125
+
