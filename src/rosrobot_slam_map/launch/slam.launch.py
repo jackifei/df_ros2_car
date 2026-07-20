@@ -6,7 +6,7 @@ import os
 def generate_launch_description():
     # Rviz2 配置文件路径（使用 lidar_pkg 包中的 config/slam.rviz）
     rviz_config_file = os.path.join(
-        get_package_share_directory('lidar_pkg'),
+        get_package_share_directory('rosrobot_slam_map'),
         'config',
         'slam.rviz'
     )
@@ -20,7 +20,7 @@ def generate_launch_description():
             name='slam_toolbox',
             output='screen',
             parameters=[{
-                'odom_frame': 'odom',
+                'odom_frame': '/odom',
                 'map_frame': 'map',
                 'base_frame': 'base_link',
                 'scan_topic': '/scan',
@@ -32,11 +32,11 @@ def generate_launch_description():
         ),
 
         # Rviz2 可视化窗口
-        Node(
-            package='rviz2',
-            executable='rviz2',
-            name='rviz2',
-            arguments=['-d', rviz_config_file],
-            output='screen',
-        ),
+        # Node(
+        #     package='rviz2',
+        #     executable='rviz2',
+        #     name='rviz2',
+        #     arguments=['-d', rviz_config_file],
+        #     output='screen',
+        # ),
     ])
