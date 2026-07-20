@@ -22,7 +22,10 @@ from geometry_msgs.msg import Twist
 
 
 # 导入无IMU里程计算法类（已改为非Node版本）,如果输入错误，将导致雷达点云数据错误，里程计报错
-from rosrobot_odom.wheel_odom_noimu import WheelOdomPure
+# from rosrobot_odom.wheel_odom_noimu import WheelOdomPure
+from .wheel_odom_noimu import WheelOdomPure
+
+
 
 class WheelOdomFusionNode(Node):
     def __init__(self):
