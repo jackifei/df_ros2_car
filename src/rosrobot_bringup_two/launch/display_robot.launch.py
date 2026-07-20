@@ -20,7 +20,7 @@ display_robot.launch.py — RViz2 小车模型显示 + 同步后驱键盘控制 
   ros2 run teleop_twist_keyboard teleop_twist_keyboard
   按键: i=前进  k=停止  j=左转  l=右转  ,=后退
 """
-#  1231313213
+
 import os
 
 from launch import LaunchDescription
