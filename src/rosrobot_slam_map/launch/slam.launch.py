@@ -10,7 +10,10 @@ def generate_launch_description():
         'config',
         'slam.rviz'
     )
-
+    params_file = os.path.join(
+        get_package_share_directory('rosrobot_slam_map'),
+        'config',
+        'slam_params.yaml')
 
     return LaunchDescription([
         # SLAM Toolbox 节点
@@ -19,16 +22,7 @@ def generate_launch_description():
             executable='sync_slam_toolbox_node',
             name='slam_toolbox',
             output='screen',
-            parameters=[{
-                'odom_frame': '/odom',
-                'map_frame': 'map',
-                'base_frame': 'base_link',
-                'scan_topic': '/scan',
-                'mode': 'mapping',
-                'resolution': 0.05,
-                'max_laser_range': 12.0,
-                'use_map_saver': True,
-            }]
+            parameters=[params_file]
         ),
 
         # Rviz2 可视化窗口
