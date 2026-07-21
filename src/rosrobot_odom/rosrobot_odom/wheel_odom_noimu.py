@@ -124,7 +124,7 @@ class WheelOdomPure(Node):
         #  发布器
         # =====================================================================
         self.odom_pub = self.create_publisher(Odometry, '/odom', 10)
-
+        # 发布路径
         self.path_pub = self.create_publisher(
             Path, '/path',
             QoSProfile(
