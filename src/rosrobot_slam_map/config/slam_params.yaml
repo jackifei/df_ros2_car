@@ -1,19 +1,34 @@
 slam_toolbox:
   ros__parameters:
-    odom_frame: /odom
+     #---------- 坐标系（注意：ROS 2 中 frame_id 绝对不能带前导斜杠） ----------
+    odom_frame: odom
     map_frame: map
     base_frame: base_link
     scan_topic: /scan
-    mode: mapping                   # 纯建图模式
+    # ---------- 建图模式 ----------
+    mode: mapping                 # 纯建图模式
+    # ---------- 地图分辨率与范围 ----------
     resolution: 0.1
     max_laser_range: 12.0
-    use_map_saver: true
+
+     # ---------- 阿克曼低速专用优化 ----------
+    ransform_tolerance: 0.2        # 时间戳对齐
+    minimum_travel_distance: 0.05   # 最小进行距离
+    minimum_travel_heading: 0.02    # 最小进行弧度
+    scan_buffer_size: 15            # 扫描缓冲区大小 阿克曼小车转弯半径大，
+    # 需要更多历史扫描帧来做闭环。当前 scan_buffer_size: 10 偏小，建议增大到 15~20。
+
+    # ---------- 闭环检测 ----------
+
     loop_search_radius: 5.0         # 闭环检测搜索半径
     loop_closure_min_score: 0.7     # 闭环匹配最小分数
     do_loop_closing: true           # 启用闭环检测
-    scan_buffer_size: 15            # 扫描缓冲区大小 阿克曼小车转弯半径大，需要更多历史扫描帧来做闭环。当前 scan_buffer_size: 10 偏小，建议增大到 15~20。
+
+    # ---------- 其他 ----------
     enable_interactive_mode: false  # 非交互模式节省内存
-    transform_tolerance: 0.2        # 时间戳对齐
-    minimum_travel_distance: 0.05   # 最小进行距离
-    minimum_travel_heading: 0.02    # 最小进行弧度
+    use_map_saver: true
     use_scan_matching: true
+#    qos_overrides:
+#      /scan:
+#        subscription:
+#          reliability: best_effort
