@@ -2,7 +2,7 @@
 """
 EKF Localization 启动文件
 ==========================
-启动 robot_localization_ekf 的 ekf_node，融合轮式里程计与IMU数据。
+启动 robot_localization_config 的 ekf_node，融合轮式里程计与IMU数据。
 
 融合输入 (话题由外部节点提供):
   /odom       (轮式里程计) — vx + vyaw
@@ -13,8 +13,8 @@ EKF Localization 启动文件
   /tf                 (odom → base_link)
 
 Usage:
-  ros2 launch robot_localization_ekf ekf_localization.launch.py
-  ros2 launch robot_localization_ekf ekf_localization.launch.py frequency:=100.0
+  ros2 launch robot_localization_config ekf_localization.launch.py
+  ros2 launch robot_localization_config ekf_localization.launch.py frequency:=100.0
 """
 
 from launch import LaunchDescription
@@ -26,7 +26,7 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
-    pkg_dir = get_package_share_directory('robot_localization_ekf')
+    pkg_dir = get_package_share_directory('robot_localization_config')
 
     # ---- 参数声明 ----
     frequency_arg = DeclareLaunchArgument(
@@ -43,7 +43,7 @@ def generate_launch_description():
     #   /odom      ← joystick_bridge 发布
     #   /imu/data  ← 外部 IMU 驱动发布
     ekf_node = Node(
-        package='robot_localization_ekf',
+        package='robot_localization_config',
         executable='ekf_node',
         name='ekf_filter_node',
         output='screen',

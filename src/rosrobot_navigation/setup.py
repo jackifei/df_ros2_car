@@ -12,10 +12,11 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
-        (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
-        (os.path.join('share', package_name, 'maps'), glob('launch/*.yaml')),
-        (os.path.join('share', package_name, 'maps'), glob('config/*.pgm')),
+
+        (f'share/{package_name}/launch', ['launch/nav_control.launch.py']),
+        (f'share/{package_name}/config', ['config/nav2_params.yaml']),
+        (f'share/{package_name}/maps', ['maps/map_edited.yaml']),
+        (f'share/{package_name}/maps', ['maps/map_edited.pgm'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,
