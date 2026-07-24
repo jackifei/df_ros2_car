@@ -4,10 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Image1
-        - /Image1/Topic1
+        - /Map1
       Splitter Ratio: 0.5
-    Tree Height: 165
+    Tree Height: 438
   - Class: rviz_common/Views
     Expanded: ~
     Name: Views
@@ -48,6 +47,8 @@ Visualization Manager:
           Value: true
         lidar_Link:
           Value: true
+        lidar_Link_sub:
+          Value: true
         lq_Link:
           Value: true
         odom:
@@ -69,7 +70,8 @@ Visualization Manager:
             lh_Link:
               {}
             lidar_Link:
-              {}
+              lidar_Link_sub:
+                {}
             lq_Link:
               {}
             rh_Link:
@@ -215,6 +217,30 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /image_raw
       Value: true
+
+    - Alpha: 0.699999988079071
+      Binary representation: false
+      Binary threshold: 100
+      Class: rviz_default_plugins/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map_updates
+      Use Timestamp: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 61; 56; 70
@@ -232,38 +258,38 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/ThirdPersonFollower
-      Distance: 8.168892860412598
+      Class: rviz_default_plugins/Orbit
+      Distance: 5
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.5136139392852783
-        Y: -1.924577236175537
-        Z: 0
+        X: 0
+        Y: 0
+        Z: 0.10000000149011612
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9097972512245178
+      Pitch: 0.8999999761581421
       Target Frame: base_link
-      Value: ThirdPersonFollower (rviz_default_plugins)
-      Yaw: -1.3100030422210693
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 1.0149999856948853
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 651
+  Height: 1011
   Hide Left Dock: false
   Hide Right Dock: false
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000001990000022dfc0200000003fb000000100044006900730070006c006100790073010000003f0000012b000000cc00fffffffb0000000a005600690065007700730000000111000000a9000000a900fffffffb0000000a0049006d0061006700650100000170000000fc0000001700ffffff000003290000022d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000001000000000000015600000395fc0200000003fb0000000a0049006d006100670065010000003f000001530000001700fffffffb000000100044006900730070006c00610079007301000001980000023c000000cc00fffffffb0000000a0056006900650077007300000002cd00000107000000a900ffffff000005ec0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
-  Width: 1224
+  Width: 1864
   X: 56
   Y: 32

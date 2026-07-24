@@ -16,7 +16,8 @@ setup(
         (f'share/{package_name}/launch', ['launch/robot_control.launch.py']),
         (f'share/{package_name}/launch', ['launch/robot_test_loadurdf.launch.py']),
         (f'share/{package_name}/config', ['config/robot_control.yaml']),
-        (f'share/{package_name}/config', ['config/global_params.yaml'])
+        (f'share/{package_name}/config', ['config/global_params.yaml']),
+        (f'share/{package_name}/config', ['config/odom_display.rviz'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,

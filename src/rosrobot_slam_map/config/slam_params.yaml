@@ -9,7 +9,7 @@ slam_toolbox:
     mode: mapping                 # 纯建图模式
     # ---------- 地图分辨率与范围 ----------
     resolution: 0.1
-    max_laser_range: 12.0
+    max_laser_range: 8.0
 
      # ---------- 阿克曼低速专用优化 ----------
     ransform_tolerance: 0.2        # 时间戳对齐

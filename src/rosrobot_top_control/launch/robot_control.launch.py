@@ -205,6 +205,7 @@ def generate_launch_description():
                 '--child-frame-id', 'lidar_Link_sub'   # 变换后的id，然后雷达的发布节点需要绑定此sub节点
                 ]
             ))
+
         # ============================================================
         # 8. RViz2 —— 可视化
         #    使用 odom_display.rviz 配置：
@@ -213,7 +214,7 @@ def generate_launch_description():
         # ============================================================
         print(f"启动Rviz2可视化")
         rviz_config = PathJoinSubstitution([
-            FindPackageShare('rosrobot_bringup_two'),
+            FindPackageShare('rosrobot_top_control'),
             'config',
             'odom_display.rviz',
         ]).perform(context)
