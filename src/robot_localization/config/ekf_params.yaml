@@ -17,7 +17,7 @@ ekf_filter_node:
     print_diagnostics: false           # 生产环境关闭诊断输出
 
     # --- 坐标系 ---
-    map_frame: map
+    map_frame: maps
     odom_frame: odom
     base_link_frame: base_link
     world_frame: odom                  # 世界坐标系设为odom

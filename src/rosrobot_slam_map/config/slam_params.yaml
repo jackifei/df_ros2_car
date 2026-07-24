@@ -2,7 +2,7 @@ slam_toolbox:
   ros__parameters:
      #---------- 坐标系（注意：ROS 2 中 frame_id 绝对不能带前导斜杠） ----------
     odom_frame: odom
-    map_frame: map
+    map_frame: maps
     base_frame: base_link
     scan_topic: /scan
     # ---------- 建图模式 ----------

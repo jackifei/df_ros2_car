@@ -1,7 +1,7 @@
 slam_toolbox:
   ros__parameters:
     odom_frame: /odom
-    map_frame: map
+    map_frame: maps
     base_frame: base_link
     scan_topic: /scan
     mode: mapping                   # 纯建图模式

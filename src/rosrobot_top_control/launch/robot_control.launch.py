@@ -189,22 +189,22 @@ def generate_launch_description():
         # ============================================================
         # 8. 添加Z轴180度旋转的静态坐标变换
         # ============================================================
-        nodes.append(Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='lidar_z_rotation',
-            output='screen',
-            arguments=[
-                '--x', '0',
-                '--y', '0',
-                '--z', '0',
-                '--roll', '0',
-                '--pitch', '0',
-                '--yaw', '3.14159265',  # 绕Z轴旋转180度
-                '--frame-id', 'lidar_Link',    # 要旋转的link名称id
-                '--child-frame-id', 'lidar_Link_sub'   # 变换后的id，然后雷达的发布节点需要绑定此sub节点
-                ]
-            ))
+        # nodes.append(Node(
+        #     package='tf2_ros',
+        #     executable='static_transform_publisher',
+        #     name='lidar_z_rotation',
+        #     output='screen',
+        #     arguments=[
+        #         '--x', '0',
+        #         '--y', '0',
+        #         '--z', '0',
+        #         '--roll', '0',
+        #         '--pitch', '0',
+        #         '--yaw', '3.14159265',  # 绕Z轴旋转180度
+        #         '--frame-id', 'lidar_Link',    # 要旋转的link名称id
+        #         '--child-frame-id', 'lidar_Link_sub'   # 变换后的id，然后雷达的发布节点需要绑定此sub节点
+        #         ]
+        #     ))
 
         # ============================================================
         # 8. RViz2 —— 可视化

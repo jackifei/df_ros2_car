@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 import os
 from glob import glob
 
-package_name = 'robot_localization_config'
+package_name = 'robot_localization'
 
 setup(
     name=package_name,

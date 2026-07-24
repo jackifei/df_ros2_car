@@ -96,7 +96,7 @@ def generate_launch_description():
     ekf_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
-                FindPackageShare('robot_localization_config'),
+                FindPackageShare('robot_localization'),
                 'launch',
                 'ekf_localization.launch.py'
             ])

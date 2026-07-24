@@ -13,8 +13,8 @@ EKF Localization 启动文件
   /tf                 (odom → base_link)
 
 Usage:
-  ros2 launch robot_localization_config ekf_localization.launch.py
-  ros2 launch robot_localization_config ekf_localization.launch.py frequency:=100.0
+  ros2 launch robot_localization ekf_localization.launch.py
+  ros2 launch robot_localization ekf_localization.launch.py frequency:=100.0
 """
 
 from launch import LaunchDescription
@@ -26,7 +26,7 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
-    pkg_dir = get_package_share_directory('robot_localization_config')
+    pkg_dir = get_package_share_directory('robot_localization')
 
     # ---- 参数声明 ----
     frequency_arg = DeclareLaunchArgument(

@@ -17,4 +17,4 @@ system:
 
 # IMU 参数（见 src/imu_driver/config/imu_params.yaml 详细配置）
 # 里程计参数（见 src/joystick_bridge/config/vehicle_params.yaml）
-# EKF 参数（见 src/robot_localization_config/config/ekf_params.yaml）
+# EKF 参数（见 src/robot_localization/config/ekf_params.yaml）

@@ -1,4 +1,4 @@
 lidar_node:
   ros__parameters:
     port_name: "/dev/ttyACM1"
-    frame_id: "lidar_Link_sub"
+    frame_id: "lidar_Link"
