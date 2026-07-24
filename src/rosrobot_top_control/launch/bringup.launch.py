@@ -53,7 +53,7 @@ def generate_launch_description():
     )
     use_ekf_arg = DeclareLaunchArgument(
         'use_ekf', default_value='true',
-        description='Enable EKF fusion via robot_localization'
+        description='Enable EKF fusion via robot_localization_ekf'
     )
     use_chassis_arg = DeclareLaunchArgument(
         'use_chassis', default_value='false',
@@ -96,7 +96,7 @@ def generate_launch_description():
     ekf_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
-                FindPackageShare('robot_localization'),
+                FindPackageShare('robot_localization_ekf'),
                 'launch',
                 'ekf_localization.launch.py'
             ])
