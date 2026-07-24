@@ -45,7 +45,7 @@ def generate_launch_description():
             ),
             LogInfo(msg='Waiting 1 second before activating...'),
             ExecuteProcess(
-                cmd=['sleep', '1'],  # 确保 configure 完成
+                cmd=['sleep', '2'],  # 确保 configure 完成
                 output='screen'
             ),
             LogInfo(msg='Activating slam_toolbox...'),
