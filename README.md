@@ -1,4 +1,131 @@
-# 小车启动流程  -- dengfei 20260706
+# 小车启动流程  -- dengfei 2026 秦皇岛文视科技有限公司
+
+## 启动机器人：launch文件启动
+ros2 launch rosrobot_top_control robot_control.launch.py
+### 启动机器人后，可通过按手柄的start开启手柄，手柄5分钟无输入会自动睡眠，需要重启
+
+
+
+# 启动雷达建图
+ros2 launch rosrobot_slam_map slam.launch.py
+* 启动雷达建图后，需要在Rviz中手动添加雷达显示窗口
+* cd 到map目录然后执行
+* ros2 run nav2_map_server map_saver_cli -f map
+* map.pgm文件  地图灰度图（黑=障碍，白=空闲，灰=未知）  灰度图格式，存储地图的视觉信息
+* map.yaml文件  地图配置文件（存储地图分辨率、原点、阈值等关键参数，供导航栈加载使用）
+*（使用rviz2可视化 slamtool工件保存，因为各种原因容易保存不上，最好执行以上指令）
+
+# 验证部分
+## 启动导航节点，并加载地图显示
+ros2 launch rosrobot_navigation nav_control.launch.py
+
+需要将rviz显示的 displays中的globaloptions中的fixed frame 的odom修改为map
+导航的时候基准坐标系变成map，切换成map后，会报错，坐标系错误，但是启动导航后，会正确显示
+
+* 加载地图，需要加载地图，将地图加载成/map进行发布
+* 验证地图是否加载，可以使用nav_control.launch.py文件中的静态TF变换，完成map到odom的变换
+ros2 run rosrobot_navigation rosrobot_nav
+
+# 启动导航节点，自动导航
+ros2 launch rosrobot_navigation nav_auto.launch.py
+* 如果没有显示地图，需要重新添加map话题订阅地图
+
+
+1、首先重定位，初始化初始位置
+
+
+
+
+
+
+
+
+
+
+
+# 其他备注内容
+* 系统重新插拔口以后，需要确认端口号以及权限问题，并且保证端口号必须与实际设备端口对应，否则无法正常运行
+* 单独启动雷达
+ros2 launch lidar_pkg lidar.launch.py
+* 查看TF树
+ros2 run tf2_tools view_frames.py
+
+* 以上launch文件已经包含了各个节点的启动流程
+* 启动robot_twist_mux.launch.py
+* 启动joystick_bridge_node节点，使其计算后轮差速，以及前轮转向角，并且通过话题发布
+* 启动df_motor_ctr 中的motor_ctr节点，后轮驱动
+* 启动df_motor_ctr 中的wheel_dir节点，用来通过USB口链接单片机控制转向
+
+## IMU启动说明
+ros2 run dm_imu dm_imu_node
+* IMU节点发布共有三项
+* imu/data 
+    frame_id: imu_link
+    orientation:    取向
+    x: -0.007085285880716189
+    y: 0.0029465950255391643
+    z: 0.252212419395722
+    w: 0.9676414686258029
+    orientation_covariance:    取向协方差
+    - 0.02
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.02
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.02
+    angular_velocity:       角速度
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    angular_velocity_covariance:        角速度协方差
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    linear_acceleration:        线速度
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    linear_acceleration_covariance:     线速度协方差
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+  
+* imu/rpy 
+    frame_id: imu_link
+    vector:  向量
+    x: -0.6886314749717712
+    y: 0.561019778251648
+    z: 12.243683815002441
+
+* imu/pose
+    pose:
+    position:  位置
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    orientation:  取向
+    x: -0.0073989114978027445
+    y: 0.0026053138804646245
+    z: 0.34647385442202816
+    w: 0.9380268315193202
+
+
+
 
 ## 运行模式 1: RViz 显示 + 键盘控制
 ros2 launch rosrobot_bringup_two display_robot.launch.py
