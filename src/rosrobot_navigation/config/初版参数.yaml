@@ -54,7 +54,7 @@ amcl:
     save_pose_rate: 0.5          # 保存位姿到磁盘的频率（Hz）
 
     # ----- 机器人模型 -----
-    robot_model_type: "nav2_amcl::DifferentialMotionModel"  # 机器人运动模型：differential / omnidirectional
+    robot_model_type: "differential"  # 机器人运动模型：differential / omnidirectional
 
     # ----- TF 广播 -----
     tf_broadcast: true           # 是否广播 map -> odom 变换
@@ -211,36 +211,29 @@ controller_server:
       # 8. 旋转惩罚：惩罚轨迹中过多的自身旋转
       Twirling:
         plugin: "dwb_critics::TwirlingCritic"
+#collision_monitor:
+#  ros__parameters:
+#    use_sim_time: false
+#    observation_sources: ["scan"]
+#    scan:
+#      type: "scan"
+#      topic: "/scan"
+#      min_height: 0.1
+#      max_height: 0.5
+#      # 其他参数...
+## --- Lifecycle Manager ---
+# 统一管理上述所有节点的生命周期（configure → activate）
 
 collision_monitor:
   ros__parameters:
-    base_frame_id: "base_link"
-    odom_frame_id: "odom"
-    cmd_vel_in_topic: "cmd_vel_smoothed"
-    cmd_vel_out_topic: "cmd_vel_nav"
-    enable_stamped_cmd_vel: False           # Jazzy 默认 False，使用 Twist
+    use_sim_time: false
     observation_sources: ["scan"]
-    # 激光雷达数据源
     scan:
       type: "scan"
-      topic: "scan"
-
-    # 安全多边形区域
-    polygons: ["PolygonStop"]
-
-    # 停止区域：机器人前方 0.4m、宽 0.6m 的矩形
-    # 点顺序：左上 → 右上 → 右下 → 左下
-    PolygonStop:
-      type: "polygon"
-      points: "[[0.4, 0.3], [0.4, -0.3], [0.0, -0.3], [0.0, 0.3]]"
-      action_type: "stop"          # 检测到障碍物 → 急停
-      min_points: 4                # 至少 4 个点触发
-
-    # ========== 速度限制（适配你小车 0.2 m/s 最高速） ==========
-    max_linear_velocity: 0.2        # 最大线速度（m/s），与小车一致
-    min_linear_velocity: -0.1     # 允许缓慢倒车
-    max_angular_velocity: 0.5        # 最大角速度（rad/s）
-    min_angular_velocity: -0.5
+      topic: "/scan"
+      min_height: 0.1
+      max_height: 0.5
+      # 其他可选参数...
 
 lifecycle_manager:
   ros__parameters:

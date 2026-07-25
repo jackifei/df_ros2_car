@@ -14,6 +14,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
 
         (f'share/{package_name}/launch', ['launch/nav_control.launch.py']),
+        (f'share/{package_name}/launch', ['launch/nav_auto.launch.py']),
         (f'share/{package_name}/config', ['config/nav2_params.yaml']),
         (f'share/{package_name}/maps', ['maps/map_edited.yaml']),
         (f'share/{package_name}/maps', ['maps/map_edited.pgm'])

@@ -42,6 +42,24 @@ def generate_launch_description():
         ]
     )
 
+    # ---------- 2. AMCL 定位（关键！负责广播 map → odom） ----------
+    amcl_node = Node(
+	    package='nav2_amcl',
+	    executable='amcl',
+	    name='amcl',
+	    output='screen',
+	    parameters=[nav_params]
+    )
+
+
+    # ---------- 静态 TF：map → odom（修复 No transform 错误） ----------
+    static_tf_map_to_odom = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_map_odom',
+        arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom']
+    )
+
     # ---------- 生命周期管理器 (用于激活 map_server) ----------
     lifecycle_node = Node(
         package='nav2_lifecycle_manager',
@@ -51,16 +69,17 @@ def generate_launch_description():
         parameters=[
             nav_params,
             {
-            'use_sim_time': False,
-            'autostart': True,
-            'node_names': ['map_server'],
-        }]
+                'use_sim_time': False,
+                'autostart': True,
+                'node_names': ['map_server'],
+            }]
     )
-
-
 
     return LaunchDescription([
         map_yaml_arg,
         map_server_node,
+        # amcl_node,
         lifecycle_node,
+        static_tf_map_to_odom,
+
     ])

@@ -108,7 +108,7 @@ Visualization Manager:
         Orientation:
           Value: false
 
-    # ========== 雷达实时扫描 ========== 
+    # ========== 雷达实时扫描 ==========
     - Class: rviz_default_plugins/LaserScan
       Color: 248; 228; 92
       Color Transformer: FlatColor
