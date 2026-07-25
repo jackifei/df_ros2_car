@@ -62,6 +62,8 @@ class CmdVel_Mux_Sync(Node):
         """接收 导航控制twist"""
         self.last_nav_twist = msg
         self.last_nav_time = self.get_clock().now()
+        # output = self.last_nav_twist
+        # self.cmd_vel_pub.publish(output)
         # self.get_logger().info(f'接收导航消息{self.last_nav_time}')
 
     def joy_sub_callback(self, msg:Joy):
@@ -89,10 +91,10 @@ class CmdVel_Mux_Sync(Node):
             self.manual_mode = False
             self.get_logger().warn(f'人工介入，已切换到手动模式')
 
-        # 2. 导航超时（0.5秒未收到新指令）
-        if self.manual_mode and dt_nav > 3.0:
+        # 2. 导航超时（10秒未收到新指令）
+        if self.manual_mode and dt_nav > 10.0:
             self.manual_mode = False
-            self.get_logger().warn('导航超时(>3.0s)，自动切回手柄控制')
+            self.get_logger().warn('导航超时(>10.0s)，自动切回手柄控制')
 
         # --- 选择输出 ---
         if self.manual_mode:
@@ -101,9 +103,9 @@ class CmdVel_Mux_Sync(Node):
             output = self.last_joy_twist
 
         # 安全保护：若无任何有效输入且超时，发布零速
-        if dt_joy > 5.0 and dt_nav > 5.0:
-            output = Twist()
-
+        # if dt_joy > 5.0 and dt_nav > 5.0:
+        #     output = Twist()
+        # output = self.last_nav_twist
         self.cmd_vel_pub.publish(output)
 
 

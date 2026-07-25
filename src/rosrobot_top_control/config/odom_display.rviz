@@ -1,8 +1,18 @@
 Panels:
   - Class: rviz_common/Displays
+    Help Height: 70
     Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Grid1
+      Splitter Ratio: 0.5
+    Tree Height: 783
   - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
     Name: Views
+    Splitter Ratio: 0.5
 Visualization Manager:
   Class: ""
   Displays:
@@ -185,7 +195,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 61; 56; 70
-    Fixed Frame: odom
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:
@@ -193,20 +203,68 @@ Visualization Manager:
     - Class: rviz_default_plugins/Select
     - Class: rviz_default_plugins/Interact
       Hide Inactive Objects: true
+    - Class: rviz_default_plugins/SetInitialPose
+      Covariance x: 0.25
+      Covariance y: 0.25
+      Covariance yaw: 0.06853891909122467
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: initialpose
+    - Class: nav2_rviz_plugins/CostmapCostTool
+      Single click: true
+    - Class: nav2_rviz_plugins/GoalTool
+    - Class: rviz_default_plugins/SetGoal
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: goal_pose
+    - Class: rviz_default_plugins/PublishPoint
+      Single click: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /clicked_point
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 5
+      Distance: 4.67099142074585
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0.1
-      Pitch: 0.9
+        X: 1.1463677883148193
+        Y: -0.3490559160709381
+        Z: -0.08298666030168533
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 1.5547963380813599
       Target Frame: base_link
-      Yaw: 1.015
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 3.0849993228912354
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 800
-  Width: 1200
+  Height: 1011
+  Hide Left Dock: false
+  Hide Right Dock: false
+  Image:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd00000001000000000000015600000395fc0200000003fb0000000a0049006d006100670065000000003f000000ef0000001700fffffffb000000100044006900730070006c006100790073010000003f00000395000000cc00fffffffb0000000a00560069006500770073000000026c00000168000000a900ffffff000005ec0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 1864
+  X: 56
+  Y: 32

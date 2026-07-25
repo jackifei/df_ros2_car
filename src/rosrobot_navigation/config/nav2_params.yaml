@@ -71,12 +71,40 @@ amcl:
     initial_pose_yaw: 0.0        # 初始朝向角（弧度）
     # 注意：initial_pose_z 已删除（2D 定位不需要）
 
+bt_navigator:
+  ros__parameters:
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: /odom
+    bt_loop_duration: 10
+    default_server_timeout: 20
+    wait_for_service_timeout: 1000
+    action_server_result_timeout: 900.0
+    navigators: ["navigate_to_pose", "navigate_through_poses"]
+    navigate_to_pose:
+      plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
+    navigate_through_poses:
+      plugin: "nav2_bt_navigator::NavigateThroughPosesNavigator"
+    # 'default_nav_through_poses_bt_xml' and 'default_nav_to_pose_bt_xml' are use defaults:
+    # nav2_bt_navigator/navigate_to_pose_w_replanning_and_recovery.xml
+    # nav2_bt_navigator/navigate_through_poses_w_replanning_and_recovery.xml
+    # They can be set here or via a RewrittenYaml remap from a parent launch file to Nav2.
+
+    # plugin_lib_names is used to add custom BT plugins to the executor (vector of strings).
+    # Built-in plugins are added automatically
+    # plugin_lib_names: []
+
+    error_code_names:
+      - compute_path_error_code
+      - follow_path_error_code
 # --- Planner (全局路径规划) ---
 # 使用 NavFn 算法计算从起点到终点的全局路径
 planner_server:
   ros__parameters:
     use_sim_time: false
+    planner_plugins: ["GridBased"]          # 规划器
     GridBased:
+#      plugin: "nav2_navfn_planner/NavfnPlanner"   # ← 建议明确指定插件类型
       tolerance: 0.5               # 到达目标点的容忍距离（米）
       use_astar: false             # 是否使用 A* 算法（false 使用 Dijkstra）
       allow_unknown: true          # 是否允许路径经过未知区域
@@ -135,16 +163,17 @@ controller_server:
       # 调试选项：是否在 /trajectories 话题发布所有候选轨迹
       debug_trajectory_details: True
       # 速度限制（m/s 或 rad/s）
-      min_vel_x: 0.2                       # 最小前进速度
+      min_vel_x: 0.0                       # 最小前进速度
       min_vel_y: 0.0                       # 最小横向速度（差速机器人设为0）
       max_vel_x: 0.2                      # 最大前进速度（建议 ≤ 0.5）
-      max_vel_y: 0.0                       # 最大横向速度（差速机器人设为0）
-      max_vel_theta: 0.15                   # 最大旋转角速度（rad/s）
+      max_vel_y: 0.2                       # 最大横向速度（差速机器人设为0）
+      max_vel_theta: 0.4                   # 最大旋转角速度（rad/s）
+
 
       # 综合速度限制
-      min_speed_xy: 0.2                    # 最小合速度（m/s）
+      min_speed_xy: 0.0                   # 最小合速度（m/s）
       max_speed_xy: 0.2                   # 最大合速度（m/s）
-      min_speed_theta: 0.15                 # 最小角速度（rad/s）
+      min_speed_theta: 0.0                 # 最小角速度（rad/s）
 
       # 加速度限制（m/s² 或 rad/s²）
       acc_lim_x: 0.2                       # 最大正向加速度
@@ -242,7 +271,7 @@ collision_monitor:
     max_angular_velocity: 0.5        # 最大角速度（rad/s）
     min_angular_velocity: -0.5
 
-lifecycle_manager:
+lifecycle_manager_navigation:
   ros__parameters:
     use_sim_time: false
     autostart: true              # 启动后自动依次激活所有节点
@@ -256,3 +285,5 @@ lifecycle_manager:
       - waypoint_follower
       - velocity_smoother
       - behavior_server
+      - smoother_server
+      - route_server

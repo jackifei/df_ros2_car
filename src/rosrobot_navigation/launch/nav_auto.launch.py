@@ -18,6 +18,12 @@ from nav2_common.launch import RewrittenYaml
 
 def generate_launch_description():
     # Get the launch directory
+
+    # 地图文件路径（默认为包内 maps/map.yaml）
+    pkg_dir = get_package_share_directory('rosrobot_navigation')
+    default_map_yaml = os.path.join(pkg_dir, 'maps', 'map_edited.yaml')
+    nav_params = os.path.join(pkg_dir,'config', 'nav2_params.yaml')
+
     bringup_dir = get_package_share_directory('nav2_bringup')
 
     namespace = LaunchConfiguration('namespace')
@@ -30,12 +36,7 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
 
-    # 地图文件路径（默认为包内 maps/map.yaml）
-    pkg_dir = get_package_share_directory('rosrobot_navigation')
-    default_map_yaml = os.path.join(pkg_dir, 'maps', 'map_edited.yaml')
 
-    config_dir = os.path.join(pkg_dir, 'config')
-    nav_params = os.path.join(config_dir, 'nav2_params.yaml')
 
     lifecycle_nodes = [
 	    'map_server',
@@ -87,6 +88,7 @@ def generate_launch_description():
         description='Full path to the ROS2 parameters file to use for all launched nodes',
     )
 
+
     declare_autostart_cmd = DeclareLaunchArgument(
         'autostart',
         default_value='true',
@@ -135,7 +137,7 @@ def generate_launch_description():
 		        output='screen',
 		        respawn=use_respawn,
 		        respawn_delay=2.0,
-		        parameters=[{'yaml_filename': LaunchConfiguration('map_yaml')}],
+		        parameters=[nav_params,{'yaml_filename': LaunchConfiguration('map_yaml')}],
 		        arguments=['--ros-args', '--log-level', log_level],
 		        remappings=remappings,
 	        ),
@@ -364,11 +366,9 @@ def generate_launch_description():
 
     # Create the launch description and populate
     ld = LaunchDescription()
-
     # Set environment variables
     ld.add_action(stdout_linebuf_envvar)
 
-    # Declare the launch options
     ld.add_action(declare_namespace_cmd)
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_params_file_cmd)
