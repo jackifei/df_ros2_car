@@ -26,7 +26,7 @@ amcl:
 
     # --- 坐标系配置 ---
     # base_frame_id: 机器人基座坐标系，通常为 base_footprint（底盘在地面的投影）
-    base_frame_id: "base_footprint"
+    base_frame_id: "base_link"
     # global_frame_id: 全局固定坐标系，通常为 map（地图坐标系）
     global_frame_id: "map"
     # odom_frame_id: 里程计坐标系，通常为 odom
@@ -39,7 +39,7 @@ amcl:
     #   - "likelihood_field_prob": 概率似然场模型
     laser_model_type: "likelihood_field"
     # laser_max_range: 激光雷达最大有效量程 (m)，超出此值的扫描点将被忽略
-    laser_max_range: 100.0
+    laser_max_range: 8.0
     # laser_min_range: 激光雷达最小有效量程 (m)，-1.0表示不设下限
     laser_min_range: -1.0
     # laser_likelihood_max_dist: 似然场模型中查找表的最大距离 (m)，限制搜索范围以加速计算
