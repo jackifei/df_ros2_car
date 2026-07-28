@@ -216,7 +216,7 @@ def generate_launch_description():
         rviz_config = PathJoinSubstitution([
             FindPackageShare('rosrobot_top_control'),
             'config',
-            'odom_display.rviz',
+            'odom_display_nav.rviz',
         ]).perform(context)
 
         nodes.append(Node(

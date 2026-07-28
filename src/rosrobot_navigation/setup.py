@@ -19,7 +19,9 @@ setup(
         (f'share/{package_name}/maps', ['maps/map_edited.yaml']),
         (f'share/{package_name}/maps', ['maps/map_edited.pgm']),
         (f'share/{package_name}/maps', ['maps/map.yaml']),
-        (f'share/{package_name}/maps', ['maps/map.pgm'])
+        (f'share/{package_name}/maps', ['maps/map.pgm']),
+        (f'share/{package_name}/maps', ['maps/map_edited_2.yaml']),
+        (f'share/{package_name}/maps', ['maps/map_edited_2.pgm'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,
