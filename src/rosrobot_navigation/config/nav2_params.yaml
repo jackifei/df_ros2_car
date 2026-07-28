@@ -410,13 +410,13 @@ local_costmap:
       # rolling_window: 是否使用滚动窗口 — true表示代价地图跟随机器人移动
       rolling_window: true
       # width: 代价地图宽度 (m) — 3m宽，以机器人为中心各1.5m
-      width: 1
+      width: 3
       # height: 代价地图高度 (m) — 3m高，以机器人为中心各1.5m
-      height: 1
+      height: 3
       # resolution: 栅格分辨率 (m/cell) — 每个栅格0.05m = 5cm
-      resolution: 0.05
+      resolution: 0.1
       # robot_radius: 机器人半径 (m) — 用于碰撞检测，0.22m = 22cm（适用于TurtleBot4等小型机器人）
-      robot_radius: 0.4
+      robot_radius: 0.2
       # plugins: 代价地图插件列表
       plugins: ["voxel_layer", "inflation_layer"]
 
@@ -429,7 +429,7 @@ local_costmap:
         #   值越小，代价下降越慢（膨胀区域越大），机器人越远离障碍物
         cost_scaling_factor: 3.0
         # inflation_radius: 膨胀半径 (m) — 障碍物的影响范围，0.7m的保持距离
-        inflation_radius: 0.50
+        inflation_radius: 0.25
 
       # --- 体素层 (Voxel Layer) ---
       # 功能: 使用3D体素网格处理激光扫描数据，转换为2D障碍物标记
@@ -460,7 +460,7 @@ local_costmap:
           raytrace_max_range: 3.0      # 光线追踪最大范围 (m) — 用于清除障碍物
           raytrace_min_range: 0.0      # 光线追踪最小范围 (m)
           obstacle_max_range: 2.5      # 障碍物检测最大范围 (m) — 超过此距离的扫描点忽略
-          obstacle_min_range: 0.0      # 障碍物检测最小范围 (m)
+          obstacle_min_range: 0.2      # 障碍物检测最小范围 (m) --避免自身当成障碍物
 
       # --- 静态层 (Static Layer) — 在滚动窗口中通常不使用 ---
       # 局部代价地图是滚动的，一般不需要静态地图层
@@ -488,9 +488,9 @@ global_costmap:
       # robot_base_frame: 机器人基座坐标系
       robot_base_frame: base_link
       # robot_radius: 机器人半径 (m)
-      robot_radius: 0.4
+      robot_radius: 0.2
       # resolution: 栅格分辨率 (m/cell)
-      resolution: 0.05
+      resolution: 0.1
       # track_unknown_space: 是否追踪未知空间 — true表示区分"未知"和"已知空闲"
       #   对于全局规划，"未知"区域通常视为可通过（allow_unknown: true）
       track_unknown_space: true
@@ -505,7 +505,7 @@ global_costmap:
         observation_sources: scan
         scan:
           topic: /scan
-          max_obstacle_height: 2.0
+          max_obstacle_height: 1.5
           clearing: True
           marking: True
           data_type: "LaserScan"
@@ -525,7 +525,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.7
+        inflation_radius: 0.25
 
       # always_send_full_costmap: 始终发送完整代价地图
       always_send_full_costmap: True
@@ -576,7 +576,7 @@ planner_server:
       plugin: "nav2_navfn_planner::NavfnPlanner"
       # NavFnPlanner
       # tolerance: 路径规划容差 (m) — 目标点的搜索容差，防止因浮点精度问题无法找到路径
-      tolerance: 0.5
+      tolerance: 0.3
       # use_astar: 是否使用A*算法 — false使用Dijkstra算法，true使用A*算法
       #   Dijkstra: 保证最短路径但搜索范围大
       #   A*: 启发式搜索，通常更快但不一定是最短路径（在均匀代价网格中等同Dijkstra）

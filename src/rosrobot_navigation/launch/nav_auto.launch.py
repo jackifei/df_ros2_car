@@ -27,14 +27,11 @@ from nav2_common.launch import RewrittenYaml
 def generate_launch_description():
 
     # =========================================================================
-    # 路径与参数文件配置
     # rosrobot_navigation 包的共享目录（config/, maps/, launch/ 等）
     pkg_dir = get_package_share_directory('rosrobot_navigation')
-    default_map_yaml = os.path.join(pkg_dir, 'maps', 'map_edited.yaml')
+    default_map_yaml = os.path.join(pkg_dir, 'maps', 'map_edited_2.yaml')
     nav_params = os.path.join(pkg_dir, 'config', 'nav2_params.yaml')
 
-    print(f'地图路径{default_map_yaml}')
-    print(f'导航参数文件{nav_params}')
     # =========================================================================
     # Launch 参数声明 — 可通过命令行覆盖
     # =========================================================================
@@ -85,8 +82,8 @@ def generate_launch_description():
     remappings = [('/tf', 'tf'), ('/tf_static', 'tf_static')]
 
     # =========================================================================
-    # 参数替换 — autostart 参数会被注入到 Nav2 参数文件中
-    # RewrittenYaml 是 Nav2 的工具类，可在运行时动态覆写 YAML 参数
+    #   参数替换 — autostart 参数会被注入到 Nav2 参数文件中
+    #   RewrittenYaml 是 Nav2 的工具类，可在运行时动态覆写 YAML 参数
     #   source_file: 原始 YAML 参数文件
     #   root_key: 参数根键（用于命名空间隔离）
     #   param_rewrites: 运行时要替换的参数字典
