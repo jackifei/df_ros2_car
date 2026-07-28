@@ -17,7 +17,9 @@ setup(
         (f'share/{package_name}/launch', ['launch/nav_auto.launch.py']),
         (f'share/{package_name}/config', ['config/nav2_params.yaml']),
         (f'share/{package_name}/maps', ['maps/map_edited.yaml']),
-        (f'share/{package_name}/maps', ['maps/map_edited.pgm'])
+        (f'share/{package_name}/maps', ['maps/map_edited.pgm']),
+        (f'share/{package_name}/maps', ['maps/map.yaml']),
+        (f'share/{package_name}/maps', ['maps/map.pgm'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,

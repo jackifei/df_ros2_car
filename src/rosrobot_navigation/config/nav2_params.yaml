@@ -288,7 +288,7 @@ controller_server:
       # --- Ackermann 转向约束 (差速机器人通常不需要，此处为兼容性保留) ---
       AckermannConstraints:
         # min_turning_r: 最小转弯半径 (m) — Ackermann转向模型的最小转弯半径
-        min_turning_r: 0.2
+        min_turning_r: 0.4
 
       # --- MPPI 评价器/评判器列表 (Critics) ---
       # 每个Critic评估轨迹的不同方面，加权求和为总代价
@@ -410,13 +410,13 @@ local_costmap:
       # rolling_window: 是否使用滚动窗口 — true表示代价地图跟随机器人移动
       rolling_window: true
       # width: 代价地图宽度 (m) — 3m宽，以机器人为中心各1.5m
-      width: 3
+      width: 1
       # height: 代价地图高度 (m) — 3m高，以机器人为中心各1.5m
-      height: 3
+      height: 1
       # resolution: 栅格分辨率 (m/cell) — 每个栅格0.05m = 5cm
       resolution: 0.05
       # robot_radius: 机器人半径 (m) — 用于碰撞检测，0.22m = 22cm（适用于TurtleBot4等小型机器人）
-      robot_radius: 0.22
+      robot_radius: 0.4
       # plugins: 代价地图插件列表
       plugins: ["voxel_layer", "inflation_layer"]
 
@@ -429,7 +429,7 @@ local_costmap:
         #   值越小，代价下降越慢（膨胀区域越大），机器人越远离障碍物
         cost_scaling_factor: 3.0
         # inflation_radius: 膨胀半径 (m) — 障碍物的影响范围，0.7m的保持距离
-        inflation_radius: 0.70
+        inflation_radius: 0.50
 
       # --- 体素层 (Voxel Layer) ---
       # 功能: 使用3D体素网格处理激光扫描数据，转换为2D障碍物标记
@@ -488,7 +488,7 @@ global_costmap:
       # robot_base_frame: 机器人基座坐标系
       robot_base_frame: base_link
       # robot_radius: 机器人半径 (m)
-      robot_radius: 0.22
+      robot_radius: 0.4
       # resolution: 栅格分辨率 (m/cell)
       resolution: 0.05
       # track_unknown_space: 是否追踪未知空间 — true表示区分"未知"和"已知空闲"
@@ -574,6 +574,7 @@ planner_server:
 
     GridBased:
       plugin: "nav2_navfn_planner::NavfnPlanner"
+      # NavFnPlanner
       # tolerance: 路径规划容差 (m) — 目标点的搜索容差，防止因浮点精度问题无法找到路径
       tolerance: 0.5
       # use_astar: 是否使用A*算法 — false使用Dijkstra算法，true使用A*算法
@@ -687,7 +688,7 @@ route_server:
     # boundary_radius_to_achieve_node: 到达路线节点边界的半径 (m) — 到达此范围即认为到达节点
     boundary_radius_to_achieve_node: 1.0
     # radius_to_achieve_node: 到达路线节点的半径 (m) — 较严格的到达判定
-    radius_to_achieve_node: 2.0
+    radius_to_achieve_node: 1.0
     # smooth_corners: 是否在路线拐角处进行平滑处理
     smooth_corners: true
     # operations: 路线服务器启用的操作列表
@@ -702,7 +703,7 @@ route_server:
     CollisionMonitor:
       plugin: "nav2_route::CollisionMonitor"
       # max_collision_dist: 碰撞检测的最大距离 (m)
-      max_collision_dist: 3.0
+      max_collision_dist: 1.0
 
     # edge_cost_functions: 路线图中边的代价评估函数
     edge_cost_functions: ["DistanceScorer", "CostmapScorer"]
