@@ -25,30 +25,28 @@ from nav2_common.launch import RewrittenYaml
 
 
 def generate_launch_description():
+
     # =========================================================================
     # 路径与参数文件配置
-    # =========================================================================
     # rosrobot_navigation 包的共享目录（config/, maps/, launch/ 等）
     pkg_dir = get_package_share_directory('rosrobot_navigation')
-    # 默认地图 YAML 文件路径
     default_map_yaml = os.path.join(pkg_dir, 'maps', 'map_edited.yaml')
-    # Nav2 综合参数文件路径（包含所有服务器节点的 YAML 配置）
     nav_params = os.path.join(pkg_dir, 'config', 'nav2_params.yaml')
 
-    # nav2_bringup 包的共享目录（Nav2 官方启动辅助工具）
-    bringup_dir = get_package_share_directory('nav2_bringup')
-
+    print(f'地图路径{default_map_yaml}')
+    print(f'导航参数文件{nav_params}')
     # =========================================================================
     # Launch 参数声明 — 可通过命令行覆盖
     # =========================================================================
     # namespace: 所有节点的顶级命名空间，默认为空（无命名空间前缀）
     namespace = LaunchConfiguration('namespace')
     # use_sim_time: 是否使用仿真时间（Gazebo），真实机器人应为 false
-    use_sim_time = LaunchConfiguration('use_sim_time')
+    use_sim_time = LaunchConfiguration('use_sim_time',default= 'false')
     # autostart: 是否自动激活 lifecycle 节点（true=启动后自动进入active状态）
     autostart = LaunchConfiguration('autostart')
     # params_file: Nav2 参数 YAML 文件完整路径
     params_file = LaunchConfiguration('params_file')
+
     # use_composition: 是否使用组合节点模式（将多个组件加载到同一进程）
     use_composition = LaunchConfiguration('use_composition')
     # container_name: 组合节点容器名称
@@ -105,7 +103,7 @@ def generate_launch_description():
         ),
         allow_substs=True,
     )
-    print(configured_params)
+
     # =========================================================================
     # 环境变量设置 — 启用 RCUTILS 缓冲日志流（更高效的日志输出）
     # =========================================================================
@@ -123,7 +121,7 @@ def generate_launch_description():
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time',
         default_value='false',  # 默认 false: 真实机器人使用系统时钟
-        description='Use simulation (Gazebo) clock if true',
+        description='如果为真使用gazebo的仿真时钟',
     )
 
     declare_params_file_cmd = DeclareLaunchArgument(
@@ -547,15 +545,16 @@ def generate_launch_description():
     ld.add_action(stdout_linebuf_envvar)
 
     # 声明 Launch 参数
-    ld.add_action(declare_namespace_cmd)
-    ld.add_action(declare_use_sim_time_cmd)
-    ld.add_action(declare_params_file_cmd)
-    ld.add_action(declare_autostart_cmd)
-    ld.add_action(declare_use_composition_cmd)
-    ld.add_action(declare_container_name_cmd)
-    ld.add_action(declare_use_respawn_cmd)
-    ld.add_action(declare_log_level_cmd)
-    ld.add_action(declare_map_yaml_cmd)
+    # map_yaml_arg
+    ld.add_action(declare_namespace_cmd)  # 声明命名空间
+    ld.add_action(declare_use_sim_time_cmd) # 声明是否使用仿真时间，实车使用系统时钟
+    ld.add_action(declare_params_file_cmd) # 声明参数文件路径
+    ld.add_action(declare_autostart_cmd) # 声明自动启动
+    ld.add_action(declare_use_composition_cmd) # 声明使用融合节点模式  fasle使用单独节点模型
+    ld.add_action(declare_container_name_cmd)  # 如果使用容器模式，节点要加载的容易名称
+    ld.add_action(declare_use_respawn_cmd)  # 节点崩溃时，是否重启
+    ld.add_action(declare_log_level_cmd) # 日志
+    ld.add_action(declare_map_yaml_cmd) # 地图
 
     # 加载导航节点组（根据 use_composition 条件二选一）
     ld.add_action(load_nodes)
