@@ -11,7 +11,7 @@ slam_toolbox:
     resolution: 0.02
     max_laser_range: 8.0
 
-     # ---------- 阿克曼低速专用优化 ----------
+    # ---------- 阿克曼低速专用优化 ----------
     ransform_tolerance: 0.2        # 时间戳对齐
     minimum_travel_distance: 0.05   # 最小进行距离
     minimum_travel_heading: 0.02    # 最小进行弧度
