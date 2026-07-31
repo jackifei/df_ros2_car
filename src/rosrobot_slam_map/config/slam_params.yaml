@@ -20,7 +20,7 @@ slam_toolbox:
 
     # ---------- 闭环检测 ----------
 
-    loop_search_radius: 5.0         # 闭环检测搜索半径
+    loop_search_radius: 4.0         # 闭环检测搜索半径
     loop_closure_min_score: 0.7     # 闭环匹配最小分数
     do_loop_closing: true           # 启用闭环检测
 

@@ -14,7 +14,7 @@ class JoyToServoNode(Node):
         super().__init__('joy_to_servo_node')
 
         # ---- 声明可配置参数 ----
-        self.declare_parameter('port', '/dev/ttyUSB1')
+        self.declare_parameter('port', '/dev/ttyUSB0')
         self.declare_parameter('baudrate', 115200)
         self.declare_parameter('timeout', 0.5)
 

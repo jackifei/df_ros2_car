@@ -37,8 +37,8 @@ class channel_MBRTU(Node):
 	def __init__(self,name,port: str):
 		super().__init__(name)
 
-		 # ---- 声明可配置参数 ----
-		self.declare_parameter('port', '/dev/ttyUSB0')
+		# ---- 声明可配置参数 ----
+		self.declare_parameter('port', '/dev/ttyUSB1')
 		self.declare_parameter('wheel_track', 0.39)
 		self.declare_parameter('wheel_diameter_m', 0.125)
 		self.port = self.get_parameter('port').value

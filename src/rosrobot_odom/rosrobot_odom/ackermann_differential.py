@@ -106,6 +106,8 @@ class AckermannDifferential:
 
         Returns:
             steering_angle: 等效前轮转向角 δ (rad)
+
+           此处有bug
         """
         if abs(linear_vel) > 0.01:
             # 正常行驶: δ = atan(L × ω / v)

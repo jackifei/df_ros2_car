@@ -162,7 +162,7 @@ class JoystickBridgeNode(Node):
         self.left_right_wheel_pub.publish(msg_data)
 
     def _publish_wheel_dir(self, dir: Float64):
-        """发布左右后轮目标速度"""
+        """发布前轮角度"""
         msg_data_dir = Float64()
         msg_data_dir.data = dir
         self.left_right_dir_pub.publish(msg_data_dir)
