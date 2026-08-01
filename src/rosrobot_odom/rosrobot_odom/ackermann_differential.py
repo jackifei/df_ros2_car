@@ -109,7 +109,7 @@ class AckermannDifferential:
 
            此处有bug
         """
-        print(f"线速度：{linear_vel} 角速度：{angular_vel}")
+        # print(f"线速度：{linear_vel} 角速度：{angular_vel}")
         # print(angular_vel)
         if abs(linear_vel) > 0.01:
             # 正向行驶: δ = atan(L轴距 × ω / v)

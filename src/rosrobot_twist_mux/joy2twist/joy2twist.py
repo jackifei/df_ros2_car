@@ -5,22 +5,12 @@ joy2twist.py — 导航和手柄控制 多路复用分配器
 订阅话题：/joy (sensor_msgs/Joy)
 发布话题：/cmd_vel_joy (geometry_msgs/Twist)
 
-逻辑：
-手柄元件	映射到 Twist 字段	说明
-左摇杆上下	linear.x	前进/后退
-左摇杆左右	linear.y（全向）或 angular.z（差速转向）	侧移或原地旋转
-右摇杆左右	angular.z	旋转速度（常用于差速底盘）
-右摇杆上下	很少用，可映射到 linear.z（无人机升降）	垂直运动
-左扳机 / 右扳机	线性缩放因子或 linear.x反向	倒车或加减速
-D-pad 上下	linear.x固定步进值	定速巡航
-D-pad 左右	angular.z固定步进值	点动旋转
 """
 
 import math
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from sensor_msgs.msg import JointState
 from sensor_msgs.msg import Joy
 
 class joy2twist(Node):
@@ -34,11 +24,13 @@ class joy2twist(Node):
         # ---- 声明参数 ----
         self.declare_parameter('axis_linear_x', 1)      # 左摇杆上下
         self.declare_parameter('axis_angular_z', 3)     # 右摇杆左右
-        self.declare_parameter('max_linear_speed', 0.1) # m/s
-        self.declare_parameter('max_angular_speed', 1.0)# rad/s
+        self.declare_parameter('max_linear_speed', 0.3) # m/s
+        self.declare_parameter('max_angular_speed', 0.45)# rad/s
         self.declare_parameter('deadzone', 0.05)
         self.declare_parameter('invert_linear', False)
         self.declare_parameter('invert_angular', False)
+        self.declare_parameter('wheelbase', 0.36)
+        self.declare_parameter('track_width', 0.39)
 
         # ---- 读取参数 ----
         self.axis_linear_x = self.get_parameter('axis_linear_x').value
@@ -48,6 +40,8 @@ class joy2twist(Node):
         self.deadzone = self.get_parameter('deadzone').value
         self.invert_linear = self.get_parameter('invert_linear').value
         self.invert_angular = self.get_parameter('invert_angular').value
+        self.wheelbase = self.get_parameter('wheelbase').value
+        self.track_width = self.get_parameter('track_width').value
 
         # ---- 订阅/发布 ----
         self.sub = self.create_subscription(Joy, '/joy', self.joy_callback, 10)
@@ -74,13 +68,26 @@ class joy2twist(Node):
         if self.invert_linear:
             linear = -linear
         twist.linear.x = linear * self.max_linear
+
         # 角速度 (旋转)
         raw_angular = msg.axes[self.axis_angular_z]
         angular = self.apply_deadzone(raw_angular)
         if self.invert_angular:
             angular = -angular
         twist.angular.z = angular * self.max_angular
-        # 发布
+
+        # ---- 阿克曼安全约束 ----
+        v = twist.linear.x
+        min_v = 0.03  # m/s，低于此速度禁止转向
+        if abs(v) < min_v:
+            twist.angular.z = 0.0
+        else:
+            delta_max = math.radians(30.0)
+            w_limit = abs(v) * math.tan(delta_max) / self.wheelbase
+            if abs(twist.angular.z) > w_limit:
+                twist.angular.z = math.copysign(w_limit, twist.angular.z)
+
+        # ---- 发布 ----
         self.pub.publish(twist)
 
         # 调试日志（可选）

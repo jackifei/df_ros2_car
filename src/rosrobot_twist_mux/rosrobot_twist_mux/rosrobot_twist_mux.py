@@ -85,8 +85,8 @@ class CmdVel_Mux_Sync(Node):
 
         # --- 强制接管条件 ---
         # 1. 手柄有非零速度输入（人为介入）
-        joy_nonzero = (abs(self.last_joy_twist.linear.x) > 0.001 or
-                       abs(self.last_joy_twist.angular.z) > 0.001)
+        joy_nonzero = (abs(self.last_joy_twist.linear.x) > 0.01 or
+                       abs(self.last_joy_twist.angular.z) > 0.01)
         if joy_nonzero and self.manual_mode:
             self.manual_mode = False
             self.get_logger().warn(f'人工介入，已切换到手动模式')

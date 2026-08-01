@@ -1,0 +1,34 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 50  # Hz
+
+ackermann_steering_controller:
+  ros__parameters:
+    type: ackermann_steering_controller/AckermannSteeringController
+    # 关节名称（根据你的 URDF 定义修改）
+    front_left_wheel_joint: front_left_wheel_joint
+    front_right_wheel_joint: front_right_wheel_joint
+    rear_left_wheel_joint: rear_left_wheel_joint
+    rear_right_wheel_joint: rear_right_wheel_joint
+    front_steering_joint: front_steering_joint          # 前轮转向关节（单个或两个）
+    # 若左右转向独立，可分别指定：
+    # left_steering_joint: left_steering_joint
+    # right_steering_joint: right_steering_joint
+
+    # 阿克曼参数
+    wheelbase: 0.36               # 轴距 [m]
+    front_track: 0.39             # 前轮轮距 [m]
+    rear_track: 0.39              # 后轮轮距 [m]
+
+    # 控制模式：velocity 或 effort（根据硬件选择）
+    command_type: velocity
+
+    # 限位（单位：rad 或 rad/s）
+    steering_angle_limits:
+      min: -0.5236                # ~ -30°
+      max: 0.5236                 # ~ +30°
+    steering_angle_velocity_limit: 1.0  # rad/s
+    linear_velocity_limit: 1.0         # m/s
+    angular_velocity_limit: 2.0        # rad/s
+
+    # 其他可选参数（略）

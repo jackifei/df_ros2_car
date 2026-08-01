@@ -2,8 +2,15 @@
   ros__parameters:
     axis_linear_x: 1   # 使用左摇杆进行前后控制
     axis_angular_z: 3  # 使用右摇杆进行左右控制
-    max_linear_speed: 0.1  # 最大线速度
-    max_angular_speed: 1.0  # 最大角速度
+    max_linear_speed: 0.3  # 最大线速度
+    max_angular_speed: 0.45  # 最大角速度  根据阿克曼公式计算得出
     deadzone: 0.05    # 死区限制
     invert_linear: false    # 反转线速度
     invert_angular: false    # 反转角速度
+    wheelbase: 0.36    # 轴距
+    track_width: 0.39  # 轮宽
+
+
+
+
+ 

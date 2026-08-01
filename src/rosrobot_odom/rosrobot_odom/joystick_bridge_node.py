@@ -47,6 +47,7 @@ class JoystickBridgeNode(Node):
         self.declare_parameter('max_steering_angle', 0.52)
         self.declare_parameter('max_linear_speed', 1.0)
         self.declare_parameter('max_angular_speed', 2.0)
+
         self.declare_parameter('publish_rate', 50.0)
         self.declare_parameter('dt', 0.02)
         self.declare_parameter('odom_frame_id', 'odom')
