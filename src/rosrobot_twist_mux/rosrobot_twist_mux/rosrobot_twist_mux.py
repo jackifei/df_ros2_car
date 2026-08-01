@@ -8,7 +8,7 @@ rosrobot_twist_mux.py — 导航和手柄控制 多路复用分配器
 逻辑：
 - 默认模式：手动（手柄控制）
 - 如果手柄的 START 按钮按下，切换到自动导航模式
-- 在自动导航模式下，若超过0.5秒未收到导航指令，自动切回手柄控制
+- 在自动导航模式下，若超过15秒未收到导航指令，自动切回手柄控制
 - 在任何时候，只要手柄有非零速度输入（即人为介入），立即切回手柄控制
 """
 
@@ -92,9 +92,9 @@ class CmdVel_Mux_Sync(Node):
             self.get_logger().warn(f'人工介入，已切换到手动模式')
 
         # 2. 导航超时（10秒未收到新指令）
-        if self.manual_mode and dt_nav > 10.0:
+        if self.manual_mode and dt_nav > 15.0:
             self.manual_mode = False
-            self.get_logger().warn('导航超时(>10.0s)，自动切回手柄控制')
+            self.get_logger().warn('导航超时(>15.0s)，自动切回手柄控制')
 
         # --- 选择输出 ---
         if self.manual_mode:
