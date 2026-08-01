@@ -37,8 +37,8 @@ class AckermannDifferential:
     def __init__(self, wheelbase: float, track_width: float,max_steering_angle: float = math.pi / 6):
         """
         Args:
-            wheelbase:   轴距 L — 前后轴间距 (m)
-            track_width: 后轮轮距 W — 左右后轮间距 (m)
+            wheelbase:   轴距 L — 前后轴间距 (m)    0.36
+            track_width: 后轮轮距 W — 左右后轮间距 (m)        0.39
         """
         if wheelbase <= 0 or track_width <= 0:
             raise ValueError(
@@ -62,7 +62,7 @@ class AckermannDifferential:
             (v_left, v_right): 左后轮速度, 右后轮速度 (m/s)
         """
 
-        # 钳位转向角到 [-max_steering, +max_steering] 限制到正负45度，0.785弧度
+        # 钳位转向角到 [-max_steering, +max_steering] 限制到正负30度，0.785弧度
         steering_angle = max(-self.max_steering, min(self.max_steering, steering_angle))
 
 
@@ -109,18 +109,29 @@ class AckermannDifferential:
 
            此处有bug
         """
+        print(f"线速度：{linear_vel} 角速度：{angular_vel}")
+        # print(angular_vel)
         if abs(linear_vel) > 0.01:
-            # 正常行驶: δ = atan(L × ω / v)
-            raw = self.L * angular_vel / linear_vel
-            angle = math.atan(raw)
-            # 将转向角限制在 ±30度（±max_steering）范围内
-            return max(-self.max_steering, min(self.max_steering, angle))
+            # 正向行驶: δ = atan(L轴距 × ω / v)
+            if linear_vel > 0:
+                raw = self.L * angular_vel / linear_vel
+                angle = math.atan(raw)
+                # 将转向角限制在 ±30度（±max_steering）范围内
+                return max(-self.max_steering, min(self.max_steering, angle))
+            else:
+                raw = self.L * angular_vel / linear_vel
+                angle = -math.atan(raw)
+                # 将转向角限制在 ±30度（±max_steering）范围内
+                return max(-self.max_steering, min(self.max_steering, angle))
         else:
             # 将角速度映射到转向角，gain 可根据实际调试确定
             # 例如：当 ω = 1.0 rad/s 时，希望转向角达到满偏 30度
-            gain = self.max_steering / 1.0  # 1.0 rad/s 对应满偏
+            gain = self.max_steering / (math.pi / 6)  # 1.0 rad/s 对应满偏
             angle = angular_vel * gain
+            # print(angle)
             return max(-self.max_steering, min(self.max_steering, angle))
+
+
        
 
     def compute_from_twist(self, linear_vel: float, angular_vel: float) -> tuple:
@@ -135,6 +146,7 @@ class AckermannDifferential:
             (v_left, v_right, steering_angle)
         """
         steering_angle = self.steering_angle_from_twist(linear_vel, angular_vel)
+
         v_left, v_right = self.compute_wheel_speeds(linear_vel, steering_angle)
         return v_left, v_right, steering_angle
 
