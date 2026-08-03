@@ -41,9 +41,9 @@ class CmdVelToJointsSync(Node):
 
         # ===== 可调参数 =====
         self.wheel_radius = self.declare_parameter(
-            'wheel_radius', 0.61).value              # 车轮半径 (m)
+            'wheel_radius', 0.0625).value              # 车轮半径 (m)
         self.max_steering_angle = self.declare_parameter(
-            'max_steering_angle', 0.523598).value         # 最大转向角 (rad)
+            'max_steering_angle', 0.52).value         # 最大转向角 (rad)
         self.steering_scale = self.declare_parameter(
             'steering_scale', 1.0).value             # angular.z → 转向角比例
         self.publish_rate = self.declare_parameter(

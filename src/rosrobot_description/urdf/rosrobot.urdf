@@ -206,10 +206,12 @@
   <!--   - 后轮 (lh_joint, rh_joint): velocity 指令接口                  -->
   <!--   - 前轮 (lq_joint, rq_joint): position 指令接口                  -->
   <!-- ================================================================ -->
-  <ros2_control name="GazeboSimSystem" type="system">
-    <hardware>
-      <!-- ★ Gazebo Harmonic 使用 gz_ros2_control（非 gazebo_ros2_control）-->
-      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+  <ros2_control name="AckermannBase" type="system">
+   <hardware>
+      <plugin>ackermann_hardware_bridge/AckermannBridgeHardware</plugin>
+      <param name="rear_wheel_cmd_topic">/hardware/rear_wheel_cmd</param>
+      <param name="front_steering_cmd_topic">/hardware/front_steering_cmd</param>
+      <param name="joint_feedback_topic">/hardware/joint_feedback</param>
     </hardware>
 
     <!-- 左后轮：连续转动，velocity 控制 -->
@@ -226,18 +228,18 @@
       <state_interface name="position"/>
     </joint>
 
-    <!-- 左前轮转向：revolute，position 控制（±0.7 rad 限位） -->
+    <!-- 左前轮转向：revolute，position 控制（±0.52 rad 限位） -->
     <joint name="lq_joint">
       <command_interface name="position"/>
       <state_interface name="position"/>
-      <state_interface name="velocity"/>
+
     </joint>
 
-    <!-- 右前轮转向：revolute，position 控制（±0.7 rad 限位） -->
+    <!-- 右前轮转向：revolute，position 控制（±0.52 rad 限位） -->
     <joint name="rq_joint">
       <command_interface name="position"/>
       <state_interface name="position"/>
-      <state_interface name="velocity"/>
+
     </joint>
   </ros2_control>
 

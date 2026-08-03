@@ -1,55 +1,95 @@
+# ackermann_control.launch.py
+import os
 from launch import LaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    TimerAction,
+    LogInfo,
+)
+from launch.substitutions import (
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    Command,
+)
 from launch_ros.actions import Node
-from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    # 找到配置文件路径（假设 config 文件夹在你的包内）
-    pkg_name = 'your_package_name'  # 替换为你的包名
-    config_path = PathJoinSubstitution([
-        FindPackageShare(pkg_name),
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+
+    controller_yaml_default = PathJoinSubstitution([
+        FindPackageShare('rosrobot_odom'),
         'config',
-        'ackermann_steering.yaml'
+        'ackermann_steering.yaml',
+    ])
+    controller_yaml = LaunchConfiguration('controller_yaml', default=controller_yaml_default)
+
+    urdf_path = PathJoinSubstitution([
+        FindPackageShare('rosrobot_description'),
+        'urdf',
+        'rosrobot.urdf',
     ])
 
-    # 启动 controller_manager 并加载控制器
-    controller_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['ackermann_steering_controller', '-c', '/controller_manager'],
-        parameters=[config_path],
-        output='screen',
-    )
-
-    # 启动 joint_state_broadcaster（发布关节状态）
-    joint_state_broadcaster_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['joint_state_broadcaster', '-c', '/controller_manager'],
-        output='screen',
-    )
-
-    # 可选：启动 robot_state_publisher（需要提供 URDF）
-    # 如果你的机器人描述已经加载，可以省略
-    robot_state_publisher = Node(
+    robot_state_pub_node = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         name='robot_state_publisher',
         output='screen',
-        # parameters=[{'robot_description': ...}]  # 从参数服务器获取
+        parameters=[{
+            'robot_description': Command(['cat ', urdf_path]),
+            'use_sim_time': use_sim_time,
+        }],
     )
 
-    # 可选：启动 joint_state_publisher_gui 手动调节关节（测试用）
-    # joint_state_publisher_gui = Node(
-    #     package='joint_state_publisher_gui',
-    #     executable='joint_state_publisher_gui',
-    #     name='joint_state_publisher_gui',
-    # )
+    # 桥接硬件接口已在 URDF 中声明，无需额外硬件驱动节点
+    # 外部驱动应订阅 /hardware/rear_wheel_cmd 和 /hardware/front_steering_cmd，
+    # 并发布 /hardware/joint_feedback。
+
+    controller_manager_node = Node(
+        package='controller_manager',
+        executable='ros2_control_node',
+        name='controller_manager',
+        output='screen',
+        parameters=[
+            controller_yaml,
+            {'use_sim_time': use_sim_time},
+        ],
+        remappings=[
+            ('~/robot_description', '/robot_description'),
+        ],
+    )
+
+    joint_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=[
+            'joint_state_broadcaster',
+            '--controller-manager', '/controller_manager',
+        ],
+        output='screen',
+    )
+
+    ackermann_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=[
+            'ackermann_steering_controller',
+            '--controller-manager', '/controller_manager',
+        ],
+        output='screen',
+    )
+
+    delayed_spawners = TimerAction(
+        period=2.0,
+        actions=[joint_broadcaster_spawner, ackermann_spawner],
+    )
 
     return LaunchDescription([
-        controller_spawner,
-        joint_state_broadcaster_spawner,
-        robot_state_publisher,
-        # joint_state_publisher_gui,
+        DeclareLaunchArgument('use_sim_time', default_value='false'),
+        DeclareLaunchArgument('controller_yaml', default_value=controller_yaml_default),
+        robot_state_pub_node,
+        controller_manager_node,
+        delayed_spawners,
+        LogInfo(msg='阿克曼桥接硬件接口已启动，外部驱动请连接话题。'),
     ])

@@ -1,0 +1,8 @@
+<library path="ackermann_hardware_bridge">
+  <class type="ackermann_hardware_bridge::AckermannBridgeHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      A hardware interface that bridges ROS2 Control commands and states to custom topics.
+    </description>
+  </class>
+</library>
