@@ -13,7 +13,7 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
+from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
@@ -37,7 +37,9 @@ def generate_launch_description():
         name='robot_state_publisher',
         output='screen',
         parameters=[{
-            'robot_description': Command(['cat ', urdf_path]),
+            'robot_description':  ParameterValue(
+            Command(['cat ', urdf_path]),value_type=str
+        ),
             'use_sim_time': use_sim_time,
         }],
     )
