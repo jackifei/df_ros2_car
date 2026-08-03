@@ -21,7 +21,6 @@ struct JointData
   bool is_steering = false;
   bool is_drive = false;
 
-  // 使用 unique_ptr 代替裸指针
   std::unique_ptr<double> state_position{new double(0.0)};
   std::unique_ptr<double> state_velocity{new double(0.0)};
   std::unique_ptr<double> command_velocity{nullptr};
@@ -31,20 +30,29 @@ struct JointData
 class AckermannBridgeHardware : public hardware_interface::SystemInterface
 {
 public:
-  hardware_interface::return_type configure(
+  // 生命周期回调（替代旧的 configure / start / stop）
+  hardware_interface::CallbackReturn on_init(
     const hardware_interface::HardwareInfo & info) override;
 
-  std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
+  hardware_interface::CallbackReturn on_configure(
+    const rclcpp_lifecycle::State & previous_state) override;
 
+  hardware_interface::CallbackReturn on_activate(
+    const rclcpp_lifecycle::State & previous_state) override;
+
+  hardware_interface::CallbackReturn on_deactivate(
+    const rclcpp_lifecycle::State & previous_state) override;
+
+  // 导出接口（不变）
+  std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
   std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
 
-  hardware_interface::return_type start() override;
+  // 读写（新增 time 和 period 参数）
+  hardware_interface::return_type read(
+    const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
-  hardware_interface::return_type stop() override;
-
-  hardware_interface::return_type read() override;
-
-  hardware_interface::return_type write() override;
+  hardware_interface::return_type write(
+    const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
   void feedback_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
@@ -68,7 +76,7 @@ private:
   bool feedback_received_ = false;
   std::mutex feedback_mutex_;
 
-  // 话题名称（可通过参数覆盖）
+  // 话题名称
   std::string rear_wheel_cmd_topic_ = "/hardware/rear_wheel_cmd";
   std::string front_steering_cmd_topic_ = "/hardware/front_steering_cmd";
   std::string joint_feedback_topic_ = "/hardware/joint_feedback";

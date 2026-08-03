@@ -13,7 +13,7 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
-  src/ackermann_bridge_hardware.cpp
+  src/ackermann_hardware_bridge.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -21,12 +21,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${PROJECT_NAME}
-  hardware_interface::hardware_interface
-  pluginlib::pluginlib
-  rclcpp::rclcpp
-  std_msgs::std_msgs
-  sensor_msgs::sensor_msgs
+# 使用 ament_target_dependencies 自动处理链接和包含目录
+ament_target_dependencies(${PROJECT_NAME}
+  "hardware_interface"
+  "pluginlib"
+  "rclcpp"
+  "std_msgs"
+  "sensor_msgs"
 )
 
 # 安装头文件
