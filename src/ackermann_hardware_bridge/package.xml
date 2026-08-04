@@ -3,7 +3,7 @@
   <name>ackermann_hardware_bridge</name>
   <version>0.0.1</version>
   <description>Ackermann hardware bridge using ROS2 topics</description>
-  <maintainer email="your_email@example.com">Your Name</maintainer>
+  <maintainer email="793709242@qq.com">DengFei</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -13,6 +13,7 @@
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>rclcpp_lifecycle</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -11,6 +11,7 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
   src/ackermann_hardware_bridge.cpp
@@ -26,6 +27,7 @@ ament_target_dependencies(${PROJECT_NAME}
   "hardware_interface"
   "pluginlib"
   "rclcpp"
+  "rclcpp_lifecycle"
   "std_msgs"
   "sensor_msgs"
 )
@@ -55,6 +57,7 @@ ament_export_dependencies(pluginlib)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(std_msgs)
 ament_export_dependencies(sensor_msgs)
+ament_export_dependencies(rclcpp_lifecycle)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

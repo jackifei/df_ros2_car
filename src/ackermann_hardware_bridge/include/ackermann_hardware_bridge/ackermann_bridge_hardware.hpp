@@ -4,7 +4,6 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "hardware_interface/system_interface.hpp"
@@ -63,13 +62,8 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr front_steering_pub_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr feedback_sub_;
 
-  // 后台 spin 线程
-  std::unique_ptr<std::thread> spin_thread_;
-  std::atomic<bool> spinning_{false};
-
   // 关节数据
   std::vector<JointData> joints_;
-  std::vector<std::string> feedback_joint_names_;
 
   // 反馈缓存与互斥锁
   sensor_msgs::msg::JointState last_feedback_;
