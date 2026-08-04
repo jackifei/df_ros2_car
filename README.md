@@ -1,4 +1,6 @@
-# 小车启动流程  -- dengfei 2026 秦皇岛文视科技有限公司
+# 本版本使用ros control中的阿克曼控制器进行小车底盘驱动
+不同于main分支，main是通过自己写代码实现的额阿克曼控制器，以及差速控制等功能
+使用ros control，可简化程序结构，方便使用现有模块进行开发
 
 ## 启动机器人：launch文件启动
 ros2 launch rosrobot_top_control robot_control.launch.py
