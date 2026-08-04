@@ -14,6 +14,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (f'share/{package_name}/launch', ['launch/robot_twist_mux.launch.py']),
         (f'share/{package_name}/launch', ['launch/robot_control.launch.py']),
+        (f'share/{package_name}/launch', ['launch/robot_control2.launch.py']),
         (f'share/{package_name}/launch', ['launch/robot_test_loadurdf.launch.py']),
         (f'share/{package_name}/config', ['config/robot_control.yaml']),
         (f'share/{package_name}/config', ['config/global_params.yaml']),

@@ -1,163 +1,259 @@
-# system_full.launch.py
 import os
-from launch import LaunchDescription
+
+from launch import LaunchDescription  # launch文件的描述类
 from launch.actions import (
-    LogInfo,
-    OpaqueFunction,
-    DeclareLaunchArgument,
-    IncludeLaunchDescription,
+	LogInfo,
+	OpaqueFunction,
 )
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import Node
+from launch_ros.actions import Node  # 节点启动的描述类
+from launch import LaunchDescription  # launch文件的描述类
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription  # 声明launch文件内使用的Argument类
+from launch.substitutions import LaunchConfiguration, TextSubstitution
+from ament_index_python.packages import get_package_share_directory  # 查询功能包路径的方法
 from launch_ros.substitutions import FindPackageShare
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from ament_index_python.packages import get_package_share_directory
+from launch.substitutions import PathJoinSubstitution
 
 
 def load_urdf(context) -> str:
-    """从 rosrobot_description 包读取 URDF 文件，展开 $(find ...) 宏。"""
-    pkg_share = FindPackageShare('rosrobot_description').perform(context)
-    urdf_path = os.path.join(pkg_share, 'urdf', 'rosrobot.urdf')
+	"""从 rosrobot_description 包读取 URDF 文件，展开 $(find ...) 宏。"""
+	pkg_share = FindPackageShare('rosrobot_description').perform(context)
+	urdf_path = os.path.join(pkg_share, 'urdf', 'rosrobot.urdf')
 
-    with open(urdf_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+	with open(urdf_path, 'r', encoding='utf-8') as f:
+		content = f.read()
 
-    # 展开 $(find rosrobot_description) → 实际安装路径
-    content = content.replace('$(find rosrobot_description)', pkg_share)
+	# 展开 $(find rosrobot_description) → 实际安装路径
+	content = content.replace('$(find rosrobot_description)', pkg_share)
 
-    print(f'[INFO] URDF 已加载+展开: {urdf_path} ({len(content)} 字符)')
-    return content
+	print(f'[INFO] URDF 已加载+展开: {urdf_path} ({len(content)} 字符)')
+	return content
 
 
 def generate_launch_description():
+	def joy_launch_setup(context):
+		robot_desc = load_urdf(context)
+		nodes = []
+		# ============================================================
+		# 1. robot_state_publisher —— URDF + /joint_states → TF
+		#    发布 base_link → 各连杆 的 TF 关系 robot_state_publisher是ros2自带节点包
+		# ============================================================
+		print(f"启动加载机器人关节节点发布")
+		nodes.append(Node(
+			package='robot_state_publisher',
+			executable='robot_state_publisher',
+			name='robot_state_publisher',
+			output='screen',
+			parameters=[{
+				'robot_description': robot_desc,
+				'use_sim_time': False,
+			}],
+		))
 
-    def joy_launch_setup(context):
-        nodes = []
+		controller_yaml_default = PathJoinSubstitution([
+			FindPackageShare('rosrobot_odom'),
+			'config',
+			'ackermann_steering.yaml',
+		])
+		controller_yaml = LaunchConfiguration('controller_yaml', default=controller_yaml_default)
 
-        # ============================================================
-        # 1. 启动 ros2_control 框架（阿克曼控制器、关节广播器等）
-        #    该文件内部会启动 robot_state_publisher、controller_manager 等
-        # ============================================================
-        print('[INFO] 加载 ros2_control 阿克曼控制框架')
-        ackermann_launch_path = os.path.join(
-            FindPackageShare('rosrobot_odom').perform(context),
-            'launch',
-            'rosrobot_ackermann.launch.py'
-        )
-        nodes.append(IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(ackermann_launch_path),
-            launch_arguments={
-                'use_sim_time': 'false',
-            }.items()
-        ))
+		# 3. controller_manager —— ros2_control 核心节点
+		nodes.append(Node(
+			package='controller_manager',
+			executable='ros2_control_node',
+			name='controller_manager',
+			output='screen',
+			parameters=[
+				controller_yaml,
+				{'use_sim_time': False},
+			],
+			remappings=[
+				('~/robot_description', '/robot_description'),
+			],
+		))
 
-        # ============================================================
-        # 2. robot_description_publisher —— URDF → /robot_description
-        #    （保留，供 Rviz 等使用）
-        # ============================================================
-        print('[INFO] 启动 robot_description_publisher')
-        robot_desc = load_urdf(context)
-        nodes.append(Node(
-            package='rosrobot_bringup_two',
-            executable='publish_robot_description.py',
-            name='robot_description_publisher',
-            output='screen',
-            parameters=[{'robot_description': robot_desc}],
-        ))
+		# 4. joint_state_broadcaster 的 spawner
+		nodes.append(Node(
+			package='controller_manager',
+			executable='spawner',
+			name='spawner_joint_state_broadcaster',
+			arguments=[
+				'joint_state_broadcaster',
+				'--controller-manager', '/controller_manager',
+			],
+			output='screen',
+		))
 
-        # ----- 以下节点已被 ros2_control 替代，已移除 -----
-        # - cmd_vel_to_joints_sync.py
-        # - joystick_bridge_node (电子差速器)
-        # - df_motor_ctr/motor_ctr (后轮驱动)
-        # - df_motor_ctr/wheel_dir (前轮转向)
-        # - rosrobot_odom/rosrobot_odom (里程计)
-        # 现在所有运动控制与里程计均由 ackermann_steering_controller 统一处理
+		# 5. ackermann_steering_controller 的 spawner
+		nodes.append(Node(
+			package='controller_manager',
+			executable='spawner',
+			name='spawner_ackermann_steering_controller',
+			arguments=[
+				'ackermann_steering_controller',
+				'--controller-manager', '/controller_manager',
+			],
+			output='screen',
+		))
 
-        # ============================================================
-        # 3. 手柄控制及 twist 选择器（保持不变）
-        # ============================================================
-        existing_launch_path = os.path.join(
-            FindPackageShare('rosrobot_top_control').perform(context),
-            'launch', 'robot_twist_mux.launch.py'
-        )
-        print('[INFO] 启动手柄及 twist mux')
-        nodes.append(IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(existing_launch_path)
-        ))
 
-        # ============================================================
-        # 4. 启动 IMU（保持不变）
-        # ============================================================
-        print('[INFO] 启动 IMU')
-        pkg_share = get_package_share_directory('dm_imu')
-        config_path_imu = os.path.join(pkg_share, 'config', 'params.yaml')
-        nodes.append(Node(
-            package='dm_imu',
-            executable='dm_imu_node',
-            name='dm_imu',
-            output='screen',
-            parameters=[config_path_imu]
-        ))
+		# ============================================================
+		# 1. launch 启动   启动twist选择器，并且启动手柄节点，
+		# ============================================================
+		existing_launch_path = os.path.join(
+			FindPackageShare(package='rosrobot_top_control').find('rosrobot_top_control'),
+			'launch',
+			'robot_twist_mux.launch.py'
+		)
+		print(f"启动 手柄launch 文件")
+		include_twist_mux = IncludeLaunchDescription(PythonLaunchDescriptionSource(existing_launch_path))
 
-        # ============================================================
-        # 5. 启动激光雷达（保持不变）
-        # ============================================================
-        lidar_config_path = os.path.join(
-            get_package_share_directory('lidar_pkg'),
-            'config', 'lidar_params.yaml'
-        )
-        nodes.append(Node(
-            package='lidar_pkg',
-            executable='lidar_node',
-            name='lidar_node',
-            output='screen',
-            parameters=[lidar_config_path]
-        ))
+		nodes.append(include_twist_mux)
+		# ============================================================
+		# 2. 启动IMU  ACM0
+		# ============================================================
+		print(f"启动IMU")
+		pkg_share = get_package_share_directory('dm_imu')
+		config_path_imu = os.path.join(pkg_share, 'config', 'params.yaml')
 
-        # ============================================================
-        # 6. 雷达 Z 轴微调静态变换（保持不变）
-        # ============================================================
-        nodes.append(Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='lidar_z_rotation',
-            output='screen',
-            arguments=[
-                '--x', '0', '--y', '0', '--z', '0',
-                '--roll', '0', '--pitch', '0', '--yaw', '-0.08',
-                '--frame-id', 'lidar_Link',
-                '--child-frame-id', 'lidar_Link_sub'
-            ]
-        ))
+		nodes.append(Node(
+			package='dm_imu',
+			executable='dm_imu_node',
+			name='dm_imu',
+			output='screen',
+			parameters=[config_path_imu]
+		))
 
-        # ============================================================
-        # 7. RViz2（保持不变）
-        # ============================================================
-        print('[INFO] 启动 RViz2')
-        rviz_config = PathJoinSubstitution([
-            FindPackageShare('rosrobot_top_control'),
-            'config', 'odom_display.rviz',
-        ]).perform(context)
-        nodes.append(Node(
-            package='rviz2',
-            executable='rviz2',
-            name='rviz2',
-            output='screen',
-            arguments=['-d', rviz_config],
-            parameters=[{'use_sim_time': False}]
-        ))
+		# ============================================================
+		# 3. 启动阿克曼电子差速器，用来计算后轮差速及前轮转向
+		# ============================================================
+		# print(f"启动电子差速器")
+		# nodes.append(Node(
+		# 	package='rosrobot_odom',
+		# 	executable='joystick_bridge_node',
+		# 	output='screen'
+		# ))
 
-        # ============================================================
-        # 8. USB相机（若需要，取消注释）
-        # ============================================================
-        # ... 相机节点代码 ...
+		# ============================================================
+		# 4. 启动电机驱动计算节点
+		# ============================================================
+		print(f"启动后轮电机驱动")
+		config_path_motor = os.path.join(
+			get_package_share_directory('df_motor_ctr'),
+			'config',
+			'motor_control.yaml'
+		)
+		nodes.append(Node(
+			package='df_motor_ctr',
+			executable='motor_ctr',
+			output='screen',
+			parameters=[config_path_motor]
+		))
+		# ============================================================
+		# 5. 启动前轮转向驱动
+		# ============================================================
+		print(f"启动前轮转向驱动")
+		config_path_dir = os.path.join(
+			get_package_share_directory('df_motor_ctr'),
+			'config',
+			'wheel_dir_pwm.yaml'
+		)
+		nodes.append(Node(
+			package='df_motor_ctr',
+			executable='wheel_dir',
+			output='screen',
+			parameters=[config_path_dir]
+		))
 
-        return nodes
+		# ============================================================
+		# 7. lidar 启动雷达扫描 —— 可视化
+		#    获取scan数据：
+		# ============================================================
+		lidar_config_path = os.path.join(
+			get_package_share_directory('lidar_pkg'),
+			'config',
+			'lidar_params.yaml'
+		)
+		nodes.append(Node(
+			package='lidar_pkg',
+			executable='lidar_node',
+			name='lidar_node',
+			output='screen',
+			parameters=[lidar_config_path]
+		))
+		# ============================================================
+		# 8. 添加Z轴180度旋转的静态坐标变换
+		# ============================================================
+		nodes.append(Node(
+			package='tf2_ros',
+			executable='static_transform_publisher',
+			name='lidar_z_rotation',
+			output='screen',
+			arguments=[
+				'--x', '0',
+				'--y', '0',
+				'--z', '0',
+				'--roll', '0',
+				'--pitch', '0',
+				'--yaw', '-0.08',  # 绕Z轴旋转180度
+				'--frame-id', 'lidar_Link',  # 要旋转的link名称id
+				'--child-frame-id', 'lidar_Link_sub'  # 变换后的id，然后雷达的发布节点需要绑定此sub节点
+			]
+		))
 
-    return LaunchDescription([
-        OpaqueFunction(function=joy_launch_setup),
-        LogInfo(msg='========================================================\n'
-                    '  系统启动（ros2_control 阿克曼驱动版）\n'
-                    '  🎮 DengFei  2026   文视科技  \n'
-                    '========================================================'),
-    ])
+		# ============================================================
+		# 8. RViz2 —— 可视化
+		#    使用 odom_display.rviz 配置：
+		#      Fixed Frame: odom（里程计坐标系固定，小车在其中移动）
+		#      显示: Grid + TF + RobotModel + Odometry（绿色轨迹线）
+		# ============================================================
+		print(f"启动Rviz2可视化")
+		rviz_config = PathJoinSubstitution([
+			FindPackageShare('rosrobot_top_control'),
+			'config',
+			'odom_display.rviz',
+		]).perform(context)
+
+		nodes.append(Node(
+			package='rviz2',
+			executable='rviz2',
+			name='rviz2',
+			output='screen',
+			arguments=['-d', rviz_config],
+			parameters=[{
+				'use_sim_time': False,
+			}],
+		))
+
+		# ============================================================
+		# 10. 启动USB相机 —— 可视化
+		#    获取/image_raw数据：
+		# ============================================================
+		# pkg_share = get_package_share_directory('dm_imu')
+		# params_file = os.path.join(pkg_share, 'config', 'params.yaml')
+		# print(f"启动USB相机")
+		# nodes.append(Node(
+		#     package='usb_cam',
+		#     executable='usb_cam_node_exe',
+		#     name='usb_cam_node',
+		#     output='screen',
+		#     parameters=[
+		#         {'image_width': 1280,
+		#         'image_height': 720,
+		#         'pixel_format': 'mjpeg',    # 使用 MJPEG 可获得 30fps
+		#         'framerate': 30.0,
+		#         'camera_frame_id': 'camera_link',
+		#         'io_method': 'mmap',}]
+		#     ))
+
+		return nodes
+
+	return LaunchDescription([
+		OpaqueFunction(function=joy_launch_setup),
+		LogInfo(
+			msg='========================================================\n'
+				'  系统启动 \n'
+				'  🎮 DengFei  2026   文视科技  \n'
+				'========================================================',
+		),
+	])

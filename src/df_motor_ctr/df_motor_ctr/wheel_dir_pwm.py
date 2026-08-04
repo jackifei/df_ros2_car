@@ -32,9 +32,9 @@ class JoyToServoNode(Node):
 
         # ---- 订阅 joy 话题 ----
         self.subscription = self.create_subscription(
-            Float64,
-            '/wheel_control/dir',
-            self.dir_callback,
+            Float64MultiArray,
+            '/hardware/front_steering_cmd',
+            self.dir_callback_,
             10
         )
 
@@ -44,6 +44,13 @@ class JoyToServoNode(Node):
         self.motor_status_data.data = 0.0
         
         self.get_logger().info('🎮 等待手柄数据...')
+
+    def dir_callback_(self, msg: Float64):
+        """收到手柄数据时自动调用"""
+        # ---------- 用户需在此处实现角度计算 ----------
+        # angle = (msg.data / math.pi) * 180
+        # self.get_logger().info(f'转向{msg.data}')
+        pass
 
     def dir_callback(self, msg: Float64):
         """收到手柄数据时自动调用"""

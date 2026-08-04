@@ -69,27 +69,29 @@ hardware_interface::CallbackReturn AckermannBridgeHardware::on_configure(
 hardware_interface::CallbackReturn AckermannBridgeHardware::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  // 创建节点、发布者、订阅者，启动 spin 线程
+  // 创建节点、发布者、订阅者
   node_ = std::make_shared<rclcpp::Node>("ackermann_hardware_bridge_node");
 
+  // ★★★ 将发布者的 QoS 深度改为 1，减少内部缓冲，避免 publish 阻塞 ★★★
   rear_wheel_pub_ = node_->create_publisher<std_msgs::msg::Float64MultiArray>(
-    rear_wheel_cmd_topic_, 10);
+    rear_wheel_cmd_topic_, rclcpp::QoS(1));
   front_steering_pub_ = node_->create_publisher<std_msgs::msg::Float64MultiArray>(
-    front_steering_cmd_topic_, 10);
+    front_steering_cmd_topic_, rclcpp::QoS(1));
 
   feedback_sub_ = node_->create_subscription<sensor_msgs::msg::JointState>(
     joint_feedback_topic_, rclcpp::SensorDataQoS(),
     std::bind(&AckermannBridgeHardware::feedback_callback, this, std::placeholders::_1));
 
-  spinning_ = true;
-  spin_thread_ = std::make_unique<std::thread>([this]()
-  {
-    while (spinning_ && rclcpp::ok())
-    {
-      rclcpp::spin_some(node_);
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-  });
+  // ★★★ 移除独立 spin 线程！改为在 read() 中手动调用 spin_some ★★★
+  // spinning_ = true;
+  // spin_thread_ = std::make_unique<std::thread>([this]()
+  // {
+  //   while (spinning_ && rclcpp::ok())
+  //   {
+  //     rclcpp::spin_some(node_);
+  //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  //   }
+  // });
 
   RCLCPP_INFO(node_->get_logger(), "Bridge activated, publishing to '%s' and '%s'",
               rear_wheel_cmd_topic_.c_str(), front_steering_cmd_topic_.c_str());
@@ -99,11 +101,11 @@ hardware_interface::CallbackReturn AckermannBridgeHardware::on_activate(
 hardware_interface::CallbackReturn AckermannBridgeHardware::on_deactivate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  // 停止 spin 线程，释放资源
-  spinning_ = false;
-  if (spin_thread_ && spin_thread_->joinable())
-    spin_thread_->join();
-  spin_thread_.reset();
+   // ★★★ 移除线程清理代码 ★★★
+  // spinning_ = false;
+  // if (spin_thread_ && spin_thread_->joinable())
+  //   spin_thread_->join();
+  // spin_thread_.reset();
 
   rear_wheel_pub_.reset();
   front_steering_pub_.reset();
@@ -155,6 +157,9 @@ AckermannBridgeHardware::export_command_interfaces()
 hardware_interface::return_type AckermannBridgeHardware::read(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
+  // ★★★ 在加锁前先处理所有待处理的 ROS 2 回调（包括 feedback_callback）★★★
+  rclcpp::spin_some(node_);
+
   std::lock_guard<std::mutex> lock(feedback_mutex_);
   if (!feedback_received_)
     return hardware_interface::return_type::OK;
@@ -181,7 +186,7 @@ hardware_interface::return_type AckermannBridgeHardware::read(
 hardware_interface::return_type AckermannBridgeHardware::write(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  std::vector<double> rear_velocities;
+ std::vector<double> rear_velocities;
   std::vector<double> front_positions;
 
   for (const auto & jd : joints_)

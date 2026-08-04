@@ -20,14 +20,16 @@ ackermann_steering_controller:
 
     # ===== 底盘机械参数（务必按实车修改）=====
     wheelbase: 0.36          # 轴距：前轮转向轴 → 后轮驱动轴（单位：米）
-    wheel_track: 0.39        # 轮距：左右车轮的间距（单位：米）
-    wheel_radius: 0.0625       # 车轮半径（单位：米）
+    traction_track_width: 0.39        # 轮距：左右车轮的间距（单位：米）
+    traction_wheels_radius: 0.0625       # 车轮半径（单位：米）
+    # ----- 关节名称（必须与 URDF 中的 joint name 完全一致）-----
+    traction_joints_names:           # ← 原 rear_wheels_names（已弃用）
+      - lh_joint
+      - rh_joint
+    steering_joints_names:           # ← 原 front_steering_joints_names（名称错误）
+      - lq_joint
+      - rq_joint
 
-    # ----- 关节名称（必须与 URDF 文件中的 joint name 完全一致）-----
-    rear_wheels_names:
-      ['lh_joint', 'rh_joint']         # 后轮驱动关节（数组）
-    front_steering_joints_names:
-      ['lq_joint', 'rq_joint'] # 前轮转向关节（数组）
 
     # ----- 控制指令相关 -----
     cmd_vel_topic: /cmd_vel     # 接收速度指令的话题名

@@ -48,6 +48,13 @@ def generate_launch_description():
     # 外部驱动应订阅 /hardware/rear_wheel_cmd 和 /hardware/front_steering_cmd，
     # 并发布 /hardware/joint_feedback。
 
+    # 添加硬件连接话题
+
+
+
+
+
+
     controller_manager_node = Node(
         package='controller_manager',
         executable='ros2_control_node',
