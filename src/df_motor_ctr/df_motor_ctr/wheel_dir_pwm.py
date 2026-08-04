@@ -33,8 +33,8 @@ class JoyToServoNode(Node):
         # ---- 订阅 joy 话题 ----
         self.subscription = self.create_subscription(
             Float64MultiArray,
-            '/hardware/front_steering_cmd',
-            self.dir_callback_,
+            '/wheel_control/dir',
+            self.dir_callback,
             10
         )
 

@@ -48,7 +48,7 @@ class channel_MBRTU(Node):
 		# 创建ROS2订阅节点 需要订阅后轮速度节点，用来数据计算
 		# 此处需要修改，上一个话题的发布是50HZ，对于点击驱动来说，相应不了这么高的频率
 		# 由于发布频率的问题，需要修改为转速当变化时才进行写入，并且为int类型，下位机采用modbus协议，只能是int
-		self.sub = self.create_subscription(Float64MultiArray, '/hardware/rear_wheel_cmd', self.listener_callback_, 10)     # 创建订阅者对象（消息类型、话题名、订阅者回调函数、队列长度）
+		self.sub = self.create_subscription(Float64MultiArray, '/wheel_control/leftright', self.listener_callback_, 10)     # 创建订阅者对象（消息类型、话题名、订阅者回调函数、队列长度）
 		# 创建电机实时状态的发布对象
 		self.cmd_vel_rt_pub = self.create_publisher(Twist, '/cmd_vel_rt', 10)
 		self.motor_status_data = Twist()
