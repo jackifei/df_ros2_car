@@ -1,6 +1,6 @@
 # ackermann_hardware_bridge 包分析报告
 
-> 分析日期：2026-08-04
+> 分析日期：2026-08-05
 > ROS2 版本：Jazzy Jalisco
 > 包版本：0.0.1
 
