@@ -1,4 +1,4 @@
-#include "ackermann_hardware_bridge/ackermann_bridge_hardware.hpp"
+#include "ackermann_hardware_bridge/ackermann_hardware_bridge.hpp"
 
 #include <algorithm>
 #include <memory>

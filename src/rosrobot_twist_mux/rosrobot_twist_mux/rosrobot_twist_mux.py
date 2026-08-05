@@ -35,7 +35,7 @@ class CmdVel_Mux_Sync(Node):
         self.joy_sub = self.create_subscription(Joy, '/joy', self.joy_sub_callback, 10)
 
         # ===== 发布 /joint_states =====
-        self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel_pub', 10)
+        self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         # ===== 定时器 =====
         self.publish_rate = 50  # 发布频率
         self.timer = self.create_timer(1.0 / self.publish_rate, self.publish_cmd_vel)

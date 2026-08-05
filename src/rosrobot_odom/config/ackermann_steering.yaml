@@ -6,7 +6,7 @@
 controller_manager:
   ros__parameters:
     update_rate: 50  # 控制器管理器刷新率（Hz）
-
+    #    enable_odom_tf: true
     # ----- 需要加载的控制器列表 -----
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster  # 关节状态发布器
@@ -17,6 +17,8 @@ controller_manager:
 # ----- 阿克曼转向控制器的私有参数 -----
 ackermann_steering_controller:
   ros__parameters:
+
+#    open_loop: true
 
     # ===== 底盘机械参数（务必按实车修改）=====
     wheelbase: 0.36          # 轴距：前轮转向轴 → 后轮驱动轴（单位：米）
@@ -49,3 +51,39 @@ ackermann_steering_controller:
       open_loop: true                      # false：使用编码器闭环计算；true：开环估算
       enable_odom_tf: true                  # 是否发布 odom -> base_link 的 tf 变换
       velocity_rolling_window_size: 10      # 速度平滑窗口大小（保留最近10次数据进行平滑）
+
+
+#
+#      engfei@jackifei-ubuntu:~/dfros/df_ros2_car$ ros2 param list /ackermann_steering_controller
+#      base_frame_id
+#      enable_odom_tf
+#      front_steering
+#      front_wheel_track
+#      front_wheels_names
+#      front_wheels_radius
+#      front_wheels_state_names
+#      is_async
+#      odom_frame_id
+#      open_loop
+#      pose_covariance_diagonal
+#      position_feedback
+#      rear_wheel_track
+#      rear_wheels_names
+#      rear_wheels_radius
+#      rear_wheels_state_names
+#      reduce_wheel_speed_until_steering_reached
+#      reference_timeout
+#      start_type_description_service
+#      steering_joints_names
+#      steering_joints_state_names
+#      steering_track_width
+#      thread_priority
+#      traction_joints_names
+#      traction_joints_state_names
+#      traction_track_width
+#      traction_wheels_radius
+#      twist_covariance_diagonal
+#      update_rate
+#      use_sim_time
+#      velocity_rolling_window_size
+#      wheelbase

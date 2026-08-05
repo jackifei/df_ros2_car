@@ -33,11 +33,11 @@ ackermann_hardware_bridge/
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                     ros2_control 框架                             │
+│                     ros2_control 框架                            │
 │  ┌─────────────────┐      ┌──────────────────────────────────┐  │
-│  │ Controller Manager│     │  ackermann_hardware_bridge        │  │
+│  │ Controller Manager│    │  ackermann_hardware_bridge        │  │
 │  │  ┌─────────────┐ │     │  (本包 - SystemInterface)         │  │
-│  │  │ Ackermann   │ │write│  ┌──────────┐  ┌───────────────┐ │  │
+│  │  │ Ackermann   │ │write│  ┌──────────┐  ┌───────────────┐  │  │
 │  │  │ Steering    │─┼─────┼─►│ 后轮速度  │─►│ /hardware/    │ │  │
 │  │  │ Controller  │ │     │  │ 命令发布  │  │ rear_wheel_cmd│ │  │
 │  │  └─────────────┘ │     │  ├──────────┤  └───────────────┘ │  │
@@ -45,7 +45,7 @@ ackermann_hardware_bridge/
 │  │  │ Joint State │ │     │  │ 命令发布  │─►│ /hardware/    │ │  │
 │  │  │ Broadcaster │◄┼──┐  │  └──────────┘  │ front_steering│ │  │
 │  │  └─────────────┘ │  │  │                │ _cmd          │ │  │
-│  └─────────────────┘  │  │  ┌──────────┐  └───────────────┘ │  │
+│  └──────────────────┘   │  │  ┌──────────┐  └───────────────┘  │  │
 │                        │  │  │ 关节反馈  │  ┌───────────────┐ │  │
 │                        │  │  │ 订阅接收  │◄─│ /hardware/    │ │  │
 │                        │  │  └──────────┘  │ joint_feedback│ │  │
