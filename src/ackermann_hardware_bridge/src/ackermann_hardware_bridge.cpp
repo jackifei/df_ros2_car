@@ -1,4 +1,4 @@
-#include "ackermann_hardware_bridge/ackermann_bridge_hardware.hpp"
+#include "ackermann_hardware_bridge/ackermann_hardware_bridge.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -67,6 +67,15 @@ hardware_interface::CallbackReturn AckermannBridgeHardware::on_configure(
 hardware_interface::CallbackReturn AckermannBridgeHardware::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
+    // ★★★ 初始化所有关节的状态值为 0.0，防止 NaN ★★★
+  for (auto &joint : joints_)
+  {
+    if (joint.state_position)  *joint.state_position  = 0.0;
+    if (joint.state_velocity)  *joint.state_velocity  = 0.0;
+    // 命令指针可能为 nullptr（取决于你的设计），只初始化非空指针
+    if (joint.command_velocity)  *joint.command_velocity = 0.0;
+    if (joint.command_position)  *joint.command_position = 0.0;
+  }
   // 创建节点、发布者、订阅者
   node_ = std::make_shared<rclcpp::Node>("ackermann_hardware_bridge_node");
 

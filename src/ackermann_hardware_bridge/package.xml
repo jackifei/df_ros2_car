@@ -20,6 +20,6 @@
 
   <export>
     <build_type>ament_cmake</build_type>
-    <hardware_interface plugin="${prefix}/plugins/ackermann_bridge_hardware.xml"/>
+    <hardware_interface plugin="${prefix}/plugins/ackermann_hardware_bridge.xml"/>
   </export>
 </package>

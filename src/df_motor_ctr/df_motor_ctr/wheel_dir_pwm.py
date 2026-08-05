@@ -34,7 +34,7 @@ class JoyToServoNode(Node):
         self.subscription = self.create_subscription(
             Float64MultiArray,
             '/hardware/front_steering_cmd',
-            self.dir_callback_,
+            self.dir_callback,
             10
         )
 
@@ -45,17 +45,18 @@ class JoyToServoNode(Node):
         
         self.get_logger().info('🎮 等待手柄数据...')
 
-    def dir_callback_(self, msg: Float64):
+    def dir_callback_(self, msg: Float64MultiArray):
         """收到手柄数据时自动调用"""
         # ---------- 用户需在此处实现角度计算 ----------
         # angle = (msg.data / math.pi) * 180
         # self.get_logger().info(f'转向{msg.data}')
         pass
 
-    def dir_callback(self, msg: Float64):
+    def dir_callback(self, msg: Float64MultiArray):
         """收到手柄数据时自动调用"""
         # ---------- 用户需在此处实现角度计算 ----------
-        angle =  (msg.data / math.pi) * 180
+        # self.get_logger().info(f'转向角度{msg.data[0]}  {msg.data[1]}')
+        angle =  (msg.data[0] / math.pi) * 180
         # self.get_logger().info(f'🎮 {angle}...')
         # ----------------------------------------------
         if angle is None:

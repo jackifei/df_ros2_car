@@ -33,11 +33,11 @@ ackermann_hardware_bridge/
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                     ros2_control 框架                             │
+│                     ros2_control 框架                            │
 │  ┌─────────────────┐      ┌──────────────────────────────────┐  │
-│  │ Controller Manager│     │  ackermann_hardware_bridge        │  │
+│  │ Controller Manager│    │  ackermann_hardware_bridge        │  │
 │  │  ┌─────────────┐ │     │  (本包 - SystemInterface)         │  │
-│  │  │ Ackermann   │ │write│  ┌──────────┐  ┌───────────────┐ │  │
+│  │  │ Ackermann   │ │write│  ┌──────────┐  ┌───────────────┐  │  │
 │  │  │ Steering    │─┼─────┼─►│ 后轮速度  │─►│ /hardware/    │ │  │
 │  │  │ Controller  │ │     │  │ 命令发布  │  │ rear_wheel_cmd│ │  │
 │  │  └─────────────┘ │     │  ├──────────┤  └───────────────┘ │  │
@@ -45,7 +45,7 @@ ackermann_hardware_bridge/
 │  │  │ Joint State │ │     │  │ 命令发布  │─►│ /hardware/    │ │  │
 │  │  │ Broadcaster │◄┼──┐  │  └──────────┘  │ front_steering│ │  │
 │  │  └─────────────┘ │  │  │                │ _cmd          │ │  │
-│  └─────────────────┘  │  │  ┌──────────┐  └───────────────┘ │  │
+│  └──────────────────┘   │  │  ┌──────────┐  └───────────────┘  │  │
 │                        │  │  │ 关节反馈  │  ┌───────────────┐ │  │
 │                        │  │  │ 订阅接收  │◄─│ /hardware/    │ │  │
 │                        │  │  └──────────┘  │ joint_feedback│ │  │
@@ -216,3 +216,61 @@ URDF (rosrobot_description)
 | N1 | 空指针保护 | `ackermann_hardware_bridge.cpp` | `read()` 开头添加 `if (!node_) return OK;`；`write()` 开头添加 `if (!node_ \|\| !rear_wheel_pub_ \|\| !front_steering_pub_) return OK;` |
 | N2 | CMake 显式依赖 | `CMakeLists.txt` | 新增 `find_package(rclcpp_lifecycle REQUIRED)`；在 `ament_target_dependencies` 和 `ament_export_dependencies` 中补充 `rclcpp_lifecycle` |
 | N3 | 移除死代码 | `ackermann_bridge_hardware.hpp` + `.cpp` | 删除 `feedback_joint_names_` 成员变量声明及 `on_init()` 中的 `clear()` 和 `push_back()` 调用 |
+
+
+
+
+
+
+
+#dengfei@jackifei-ubuntu:~/dfros/df_ros2_car$ ros2 param dump /ackermann_steering_controller
+#/ackermann_steering_controller:
+#  ros__parameters:
+#    base_frame_id: base_link
+#    enable_odom_tf: true
+#    front_steering: true
+#    front_wheel_track: 0.0
+#    front_wheels_names: []
+#    front_wheels_radius: 0.0
+#    front_wheels_state_names: []
+#    is_async: false
+#    odom_frame_id: odom
+#    open_loop: true
+#    pose_covariance_diagonal:
+#    - 0.0
+#    - 7.0
+#    - 14.0
+#    - 21.0
+#    - 28.0
+#    - 35.0
+#    position_feedback: false
+#    rear_wheel_track: 0.0
+#    rear_wheels_names: []
+#    rear_wheels_radius: 0.0
+#    rear_wheels_state_names: []
+#    reduce_wheel_speed_until_steering_reached: false
+#    reference_timeout: 1.0
+#    start_type_description_service: true
+#    steering_joints_names:
+#    - rq_joint
+#    - lq_joint
+#    steering_joints_state_names: []
+#    steering_track_width: 0.0
+#    thread_priority: -100
+#    traction_joints_names:
+#    - rh_joint
+#    - lh_joint
+#    traction_joints_state_names: []
+#    traction_track_width: 0.39
+#    traction_wheels_radius: 0.0625
+#    twist_covariance_diagonal:
+#    - 0.0
+#    - 7.0
+#    - 14.0
+#    - 21.0
+#    - 28.0
+#    - 35.0
+#    update_rate: 50
+#    use_sim_time: false
+#    velocity_rolling_window_size: 10
+#    wheelbase: 0.36

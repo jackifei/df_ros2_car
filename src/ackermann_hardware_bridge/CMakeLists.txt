@@ -46,10 +46,10 @@ install(TARGETS ${PROJECT_NAME}
 )
 
 # 安装插件描述文件
-install(FILES plugins/ackermann_bridge_hardware.xml
+install(FILES plugins/ackermann_hardware_bridge.xml
    DESTINATION share/${PROJECT_NAME}
  )
-pluginlib_export_plugin_description_file(hardware_interface plugins/ackermann_bridge_hardware.xml)
+pluginlib_export_plugin_description_file(hardware_interface plugins/ackermann_hardware_bridge.xml)
 # 导出 CMake 目标
 ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(hardware_interface)

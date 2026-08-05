@@ -38,6 +38,7 @@ class channel_MBRTU(Node):
 		super().__init__(name)
 
 		# ---- 声明可配置参数 ----
+		self.dir_data = 0.0
 		self.declare_parameter('port', '/dev/ttyUSB1')
 		self.declare_parameter('wheel_track', 0.39)
 		self.declare_parameter('wheel_diameter_m', 0.125)
@@ -48,10 +49,11 @@ class channel_MBRTU(Node):
 		# 创建ROS2订阅节点 需要订阅后轮速度节点，用来数据计算
 		# 此处需要修改，上一个话题的发布是50HZ，对于点击驱动来说，相应不了这么高的频率
 		# 由于发布频率的问题，需要修改为转速当变化时才进行写入，并且为int类型，下位机采用modbus协议，只能是int
-		self.sub = self.create_subscription(Float64MultiArray, '/hardware/rear_wheel_cmd', self.listener_callback_, 10)     # 创建订阅者对象（消息类型、话题名、订阅者回调函数、队列长度）
+		self.sub = self.create_subscription(Float64MultiArray, '/hardware/rear_wheel_cmd', self.listener_callback, 10)     # 创建订阅者对象（消息类型、话题名、订阅者回调函数、队列长度）
+		self.sub_dir = self.create_subscription(Float64, '/df_dir_rt', self.dir_listener_callback_, 10)
 		# 创建电机实时状态的发布对象
-		self.cmd_vel_rt_pub = self.create_publisher(Twist, '/cmd_vel_rt', 10)
-		self.motor_status_data = Twist()
+		self.cmd_vel_rt_pub = self.create_publisher(JointState, '/hardware/joint_feedback', 10)
+		self.motor_status_data = JointState()
 		# self.motor_status_data.velocity = [0.0,0.0]
 
 		self.get_logger().info(f'485电机控制初始化') 
@@ -76,6 +78,9 @@ class channel_MBRTU(Node):
 		self.slave1 = 1
 		self.slave2 = 2
 
+		self.v_l_rt = 0
+		self.v_r_rt = 0
+
 		# self.wheel_diameter_m = 0.125   # 后轮驱动轮的直径
 		#self.wheel_track = 0.39   # 后轮轮距
 
@@ -99,6 +104,21 @@ class channel_MBRTU(Node):
 		# 实例对象
 		self.open_port()
 
+	def pub_joint_status(self):
+
+		self.motor_status_data.header.stamp = self.get_clock().now().to_msg()
+
+		self.motor_status_data.name = ['lh_joint', 'rh_joint', 'lq_joint', 'rq_joint']
+		# --- 位置 (position) 单位：弧度 (rad) ---
+		# 后轮：位置通常不重要，里程计只用速度，但为了完整性设为 0.0
+		# 前轮：转向角，正值表示左转（根据 REP-103）
+		self.motor_status_data.position = [0.0, 0.0, self.dir_data, self.dir_data]
+		# --- 速度 (velocity) 单位：弧度/秒 (rad/s) ---
+		# 后轮：分别赋值左右轮的实际转速
+		# 前轮：转向速度通常不用于里程计，设为 0.0
+		self.motor_status_data.velocity = [self.v_l_rt , self.v_r_rt, 0.0, 0.0]  # 转向速度设为0
+
+		self.cmd_vel_rt_pub.publish(self.motor_status_data)
 
 	def linear_velocity_to_rpm(self,v) -> float:
 		"""
@@ -143,21 +163,28 @@ class channel_MBRTU(Node):
 		return v
 	def listener_callback_(self, msg:Float64MultiArray):
 		"""
-		接收阿克曼控制器的硬件驱动信号
+		接收阿克曼控制器的硬件驱动信号,此方法应该用来去控制电机进行旋转
 		"""
-
 		# self.get_logger().info(f'{msg.data[0]}  {msg.data[1]}')
 		pass
+
+	def dir_listener_callback_(self, msg:Float64):
+		"""前轮实时转向角"""
+		# 接收到的是角度，需要将角度转换成弧度
+		self.dir_data = (msg.data / 180 ) * math.pi
+
+		# self.get_logger().info(f'{self.dir_data}')
 
 
 	def listener_callback(self, msg:Float64MultiArray):
 		"""
 		接受手柄消息，响应手柄按键，将参数写入到电机驱动中
 		"""
-		self.get_logger().info(f'{msg.data[0]}  {msg.data[1]}')
+		# self.get_logger().info(f'{msg.data[0]}  {msg.data[1]}')
 		self.l_speed = self.linear_velocity_to_rpm(msg.data[0])
 		self.r_speed = self.linear_velocity_to_rpm(msg.data[1])
-		# self.get_logger().info(f'{self.l_speed}  {self.r_speed}')
+		# self.get_logger().info(f'---L  {self.l_speed}  ----R  {self.r_speed}')
+		self.pub_joint_status()   # 发布关节速度
 		self.write_l_speed = int(abs(self.l_speed))
 		self.write_r_speed = int(abs(self.r_speed))
 
@@ -269,24 +296,26 @@ class channel_MBRTU(Node):
 					self.get_logger().info(f'收到停止信号，立即跳出循环')  
 					break
 				try:
+					# self.get_logger().info(f'电机循环')
 					result_pos_l,result_rpm_l, moto_status_l_l,moto_status_r_r = self.read_slave_data(slave=self.slave1)
 					result_pos_r,result_rpm_r, moto_status_l_r,moto_status_r_r = self.read_slave_data(slave=self.slave2)
 					
 					# 通过转速rpm计算线速度，并且添加到twist中，进行发布
 					v_l =  self.rpm_to_linear_velocity(result_rpm_l)
 					v_r  =  self.rpm_to_linear_velocity(result_rpm_r) * -1
+					self.v_l_rt = v_l
+					self.v_r_rt = v_r
+
 					# self.get_logger().info(f'速度L{v_l} 速度R{v_r} ') 
 					# 线速度
-					self.motor_status_data.linear.x  = (v_l + v_r) / 2.0
+					# self.motor_status_data.linear.x  = (v_l + v_r) / 2.0
 					# 角速度
-					self.motor_status_data.linear.z  = (v_l - v_r) / self.wheel_track
-					self.cmd_vel_rt_pub.publish(self.motor_status_data)             # 发布twist
-					#self.get_logger().info(f'速度{result_rpm_l}方向{result_rpm_r}') 
+					# self.motor_status_data.linear.z  = (v_l - v_r) / self.wheel_track
 
 					# 1. 快速拷贝状态（持锁时间极短）
 					if self.write_speed_dir :
 						self.pull_wheel(v_l=self.write_l_speed,v_r = self.write_r_speed,l_dir=self.l_dir,r_dir=self.r_dir)
-						self.get_logger().info(f'速度{self.lr_speed}') 
+						# self.get_logger().info(f'速度{self.lr_speed}')
 						self.write_speed_dir = False
 					# 写入使能或者急停
 					if self.write_quick_stop :

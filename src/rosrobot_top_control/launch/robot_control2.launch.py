@@ -57,7 +57,7 @@ def generate_launch_description():
 		])
 		controller_yaml = LaunchConfiguration('controller_yaml', default=controller_yaml_default)
 
-		# 3. controller_manager —— ros2_control 核心节点
+		# 2. 控制管理器 controller_manager —— ros2_control 核心节点
 		nodes.append(Node(
 			package='controller_manager',
 			executable='ros2_control_node',
@@ -72,7 +72,7 @@ def generate_launch_description():
 			],
 		))
 
-		# 4. joint_state_broadcaster 的 spawner
+		# 3. 关节状态广播起，发布关节状态。joint_state_broadcaster 的 spawner
 		nodes.append(Node(
 			package='controller_manager',
 			executable='spawner',
@@ -84,7 +84,8 @@ def generate_launch_description():
 			output='screen',
 		))
 
-		# 5. ackermann_steering_controller 的 spawner
+		# 4. ackermann_steering_controller 的 spawner
+		# 阿克曼转向控制器的生成器
 		nodes.append(Node(
 			package='controller_manager',
 			executable='spawner',
@@ -92,9 +93,14 @@ def generate_launch_description():
 			arguments=[
 				'ackermann_steering_controller',
 				'--controller-manager', '/controller_manager',
+				'--controller-ros-args',
+				'-r /ackermann_steering_controller/tf_odometry:=/tf',
+				# 如果不采用rosbot_localization，此部分是必须的
 			],
 			output='screen',
 		))
+
+
 
 
 		# ============================================================
@@ -105,14 +111,14 @@ def generate_launch_description():
 			'launch',
 			'robot_twist_mux.launch.py'
 		)
-		print(f"启动 手柄launch 文件")
 		include_twist_mux = IncludeLaunchDescription(PythonLaunchDescriptionSource(existing_launch_path))
 
 		nodes.append(include_twist_mux)
+
+
 		# ============================================================
 		# 2. 启动IMU  ACM0
 		# ============================================================
-		print(f"启动IMU")
 		pkg_share = get_package_share_directory('dm_imu')
 		config_path_imu = os.path.join(pkg_share, 'config', 'params.yaml')
 
