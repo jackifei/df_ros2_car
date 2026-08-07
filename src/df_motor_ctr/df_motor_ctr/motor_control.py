@@ -49,10 +49,16 @@ class channel_MBRTU(Node):
 		# 创建ROS2订阅节点 需要订阅后轮速度节点，用来数据计算
 		# 此处需要修改，上一个话题的发布是50HZ，对于点击驱动来说，相应不了这么高的频率
 		# 由于发布频率的问题，需要修改为转速当变化时才进行写入，并且为int类型，下位机采用modbus协议，只能是int
-		self.sub = self.create_subscription(Float64MultiArray, '/hardware/rear_wheel_cmd', self.listener_callback, 10)     # 创建订阅者对象（消息类型、话题名、订阅者回调函数、队列长度）
-		self.sub_dir = self.create_subscription(Float64, '/df_dir_rt', self.dir_listener_callback_, 10)
+		self.sub = self.create_subscription(Float64MultiArray,
+		                                    '/hardware/rear_wheel_cmd',
+		                                    self.listener_callback, 10)     # 创建订阅者对象（消息类型、话题名、订阅者回调函数、队列长度）
+		self.sub_dir = self.create_subscription(Float64,
+		                                        '/df_dir_rt',
+		                                        self.dir_listener_callback_, 10)
 		# 创建电机实时状态的发布对象
-		self.cmd_vel_rt_pub = self.create_publisher(JointState, '/hardware/joint_feedback', 10)
+		self.cmd_vel_rt_pub = self.create_publisher(JointState,
+		                                            '/hardware/joint_feedback',
+		                                            10)
 		self.motor_status_data = JointState()
 		# self.motor_status_data.velocity = [0.0,0.0]
 
@@ -108,15 +114,15 @@ class channel_MBRTU(Node):
 
 		self.motor_status_data.header.stamp = self.get_clock().now().to_msg()
 
-		self.motor_status_data.name = ['lh_joint', 'rh_joint', 'lq_joint', 'rq_joint']
+		self.motor_status_data.name = ['lh_joint', 'lq_joint', 'rh_joint', 'rq_joint']
 		# --- 位置 (position) 单位：弧度 (rad) ---
 		# 后轮：位置通常不重要，里程计只用速度，但为了完整性设为 0.0
 		# 前轮：转向角，正值表示左转（根据 REP-103）
-		self.motor_status_data.position = [0.0, 0.0, self.dir_data, self.dir_data]
+		self.motor_status_data.position = [0.0, 0.0, 0.01, 0.01]
 		# --- 速度 (velocity) 单位：弧度/秒 (rad/s) ---
 		# 后轮：分别赋值左右轮的实际转速
 		# 前轮：转向速度通常不用于里程计，设为 0.0
-		self.motor_status_data.velocity = [self.v_l_rt , self.v_r_rt, 0.0, 0.0]  # 转向速度设为0
+		self.motor_status_data.velocity = [0.01 , 0.01, 0.0, 0.0]  # 转向速度设为0
 
 		self.cmd_vel_rt_pub.publish(self.motor_status_data)
 

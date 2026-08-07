@@ -15,7 +15,7 @@ rosrobot_twist_mux.py — 导航和手柄控制 多路复用分配器
 import math
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, TwistStamped
 from sensor_msgs.msg import JointState
 from sensor_msgs.msg import Joy
 
@@ -34,8 +34,8 @@ class CmdVel_Mux_Sync(Node):
         # ===== 订阅遥控器节点 /joy ===== 
         self.joy_sub = self.create_subscription(Joy, '/joy', self.joy_sub_callback, 10)
 
-        # ===== 发布 /joint_states =====
-        self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        # ===== 发布 /cmd_vel =====
+        self.cmd_vel_pub = self.create_publisher(TwistStamped, '/ackermann_steering_controller/reference', 10)
         # ===== 定时器 =====
         self.publish_rate = 50  # 发布频率
         self.timer = self.create_timer(1.0 / self.publish_rate, self.publish_cmd_vel)
@@ -43,7 +43,7 @@ class CmdVel_Mux_Sync(Node):
         self.last_joy_twist = Twist()    # 最近一次的手柄
         self.last_nav_twist = Twist()    # 最近一次的导航
 
-        self.cmd_vel_pub_ = Twist()
+        # self.cmd_vel_pub_ = Twist()
         # 时间戳
         self.last_joy_time = self.get_clock().now()
         self.last_nav_time = self.get_clock().now()
@@ -102,11 +102,16 @@ class CmdVel_Mux_Sync(Node):
         else:
             output = self.last_joy_twist
 
+        # 构造 TwistStamped 消息
+        twist_stamped = TwistStamped()
+        twist_stamped.header.stamp = now.to_msg()
+        twist_stamped.header.frame_id = 'base_link'  # 可改为其他坐标系
+        twist_stamped.twist = output
         # 安全保护：若无任何有效输入且超时，发布零速
         # if dt_joy > 5.0 and dt_nav > 5.0:
         #     output = Twist()
         # output = self.last_nav_twist
-        self.cmd_vel_pub.publish(output)
+        self.cmd_vel_pub.publish(twist_stamped)
 
 
 def main(args=None):

@@ -62,7 +62,7 @@ def generate_launch_description():
 			package='controller_manager',
 			executable='ros2_control_node',
 			name='controller_manager',
-			output='screen',
+			output='both',
 			parameters=[
 				controller_yaml,
 				{'use_sim_time': False},
@@ -81,7 +81,7 @@ def generate_launch_description():
 				'joint_state_broadcaster',
 				'--controller-manager', '/controller_manager',
 			],
-			output='screen',
+			output='both',
 		))
 
 		# 4. ackermann_steering_controller 的 spawner
@@ -93,11 +93,11 @@ def generate_launch_description():
 			arguments=[
 				'ackermann_steering_controller',
 				'--controller-manager', '/controller_manager',
-				'--controller-ros-args',
-				'-r /ackermann_steering_controller/tf_odometry:=/tf',
+				# '--controller-ros-args',
+				# '--ros-args --remap /ackermann_steering_controller/reference:=/cmd_vel',
 				# 如果不采用rosbot_localization，此部分是必须的
 			],
-			output='screen',
+			output='both',
 		))
 
 
