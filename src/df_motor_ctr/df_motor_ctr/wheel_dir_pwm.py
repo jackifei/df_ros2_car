@@ -56,7 +56,7 @@ class JoyToServoNode(Node):
         """收到手柄数据时自动调用"""
         # ---------- 用户需在此处实现角度计算 ----------
         # self.get_logger().info(f'转向角度{msg.data[0]}  {msg.data[1]}')
-        angle =  (msg.data[0] / math.pi) * 180
+        angle =  (((msg.data[0] + msg.data[1]) / 2) / math.pi) * 180
         # self.get_logger().info(f'🎮 {angle}...')
         # ----------------------------------------------
         if angle is None:

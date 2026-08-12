@@ -26,6 +26,7 @@ ackermann_steering_controller:
     # ===== 底盘机械参数（务必按实车修改）=====
     wheelbase: 0.36          # 轴距：前轮转向轴 → 后轮驱动轴（单位：米）
     traction_track_width: 0.39        # 轮距：左右车轮的间距（单位：米）
+    steering_track_width: 0.39
     traction_wheels_radius: 0.0625       # 车轮半径（单位：米）
     # ----- 关节名称（必须与 URDF 中的 joint name 完全一致）-----
     #    牵引轮关节的名称。对于具有两个牵引关节的运动学构型，预期顺序为：右关节、左关节
@@ -38,10 +39,14 @@ ackermann_steering_controller:
     steering_joints_names: ['lq_joint','rq_joint']          # ← 原 front_steering_joints_names（名称错误）
     steering_joints_state_names: ['lq_joint','rq_joint']
     #   steering_track_width: 0.39
-    steering_wheels_radius: 0.0625       # 车轮半径（单位：米）
+#    steering_wheels_radius: 0.0625       # 车轮半径（单位：米）
 
 
 
+    reduce_wheel_speed_until_steering_reached: true
+#    tf_frame_prefix: false
+#    twist_covariance_diagonal:  [0.0, 7.0, 14.0, 21.0, 28.0, 35.0]
+#    pose_covariance_diagonal:  [0.0, 7.0, 14.0, 21.0, 28.0, 35.0]
 
 
     # ----- 控制指令相关 -----
@@ -52,7 +57,7 @@ ackermann_steering_controller:
 
     # ----- 速度与转向限制 -----
     linear_velocity_max: 0.3    # 最大线速度（m/s）
-    angular_velocity_max: 0.45   # 最大角速度（rad/s）
+    angular_velocity_max: 0.2   # 最大角速度（rad/s）
     steering_angle_max: 0.52    # 前轮最大转向角（rad），0.52 ≈ 30°
 
     # ----- 里程计设定（全部嵌套在 odometry 命名空间内）-----

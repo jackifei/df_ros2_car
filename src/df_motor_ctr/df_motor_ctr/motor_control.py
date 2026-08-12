@@ -45,7 +45,7 @@ class channel_MBRTU(Node):
 		self.port = self.get_parameter('port').value
 		self.wheel_track = self.get_parameter('wheel_track').value
 		self.wheel_diameter_m = self.get_parameter('wheel_diameter_m').value
-
+		# self.wheel_diameter_m = 0.125
 		# 创建ROS2订阅节点 需要订阅后轮速度节点，用来数据计算
 		# 此处需要修改，上一个话题的发布是50HZ，对于点击驱动来说，相应不了这么高的频率
 		# 由于发布频率的问题，需要修改为转速当变化时才进行写入，并且为int类型，下位机采用modbus协议，只能是int
@@ -118,11 +118,12 @@ class channel_MBRTU(Node):
 		# --- 位置 (position) 单位：弧度 (rad) ---
 		# 后轮：位置通常不重要，里程计只用速度，但为了完整性设为 0.0
 		# 前轮：转向角，正值表示左转（根据 REP-103）
-		self.motor_status_data.position = [0.0, 0.0, 0.01, 0.01]
+		self.motor_status_data.position = [0.0, 0.0, self.l_dir, self.r_dir]
 		# --- 速度 (velocity) 单位：弧度/秒 (rad/s) ---
 		# 后轮：分别赋值左右轮的实际转速
 		# 前轮：转向速度通常不用于里程计，设为 0.0
-		self.motor_status_data.velocity = [0.01 , 0.01, 0.0, 0.0]  # 转向速度设为0
+
+		self.motor_status_data.velocity = [self.v_l_rt , self.v_r_rt, 0.0, 0.0]  # 转向速度设为0
 
 		self.cmd_vel_rt_pub.publish(self.motor_status_data)
 
@@ -146,6 +147,39 @@ class channel_MBRTU(Node):
 		radius_m = self.wheel_diameter_m / 2.0
 		rpm = v * 30.0 / (math.pi * radius_m)
 		return rpm
+
+	@staticmethod
+	def rad_per_sec_to_rpm(omega_rad_s: float) -> float:
+		"""
+		将角速度（rad/s）转换为电机转速（RPM，转每分钟）
+
+		参数:
+			omega_rad_s (float): 角速度，单位 rad/s
+
+		返回:
+			float: 转速，单位 RPM
+
+		公式:
+			RPM = omega * 60 / (2 * π)
+		"""
+		rpm = omega_rad_s * 60.0 / (2.0 * math.pi)
+		return rpm
+	@staticmethod
+	def rpm_to_rad_per_sec(rpm: float) -> float:
+		"""
+		将电机转速（RPM，转每分钟）转换为角速度（rad/s）
+
+		参数:
+			rpm (float): 电机转速，单位 RPM
+
+		返回:
+			float: 角速度，单位 rad/s
+
+		公式:
+			omega = rpm * 2 * π / 60
+		"""
+		omega_rad_s = rpm * 2.0 * math.pi / 60.0
+		return omega_rad_s
 
 	def rpm_to_linear_velocity(self,n) -> float:
 		"""
@@ -187,8 +221,10 @@ class channel_MBRTU(Node):
 		接受手柄消息，响应手柄按键，将参数写入到电机驱动中
 		"""
 		# self.get_logger().info(f'{msg.data[0]}  {msg.data[1]}')
-		self.l_speed = self.linear_velocity_to_rpm(msg.data[0])
-		self.r_speed = self.linear_velocity_to_rpm(msg.data[1])
+		# self.l_speed = self.linear_velocity_to_rpm(msg.data[0])
+		# self.r_speed = self.linear_velocity_to_rpm(msg.data[1])
+		self.l_speed = self.rad_per_sec_to_rpm(msg.data[1])
+		self.r_speed = self.rad_per_sec_to_rpm(msg.data[0])
 		# self.get_logger().info(f'---L  {self.l_speed}  ----R  {self.r_speed}')
 		self.pub_joint_status()   # 发布关节速度
 		self.write_l_speed = int(abs(self.l_speed))
@@ -307,10 +343,8 @@ class channel_MBRTU(Node):
 					result_pos_r,result_rpm_r, moto_status_l_r,moto_status_r_r = self.read_slave_data(slave=self.slave2)
 					
 					# 通过转速rpm计算线速度，并且添加到twist中，进行发布
-					v_l =  self.rpm_to_linear_velocity(result_rpm_l)
-					v_r  =  self.rpm_to_linear_velocity(result_rpm_r) * -1
-					self.v_l_rt = v_l
-					self.v_r_rt = v_r
+					self.v_l_rt =  round(self.rpm_to_rad_per_sec(result_rpm_l),1)
+					self.v_r_rt  =  round(self.rpm_to_rad_per_sec(result_rpm_r) * -1,1)
 
 					# self.get_logger().info(f'速度L{v_l} 速度R{v_r} ') 
 					# 线速度
@@ -321,7 +355,7 @@ class channel_MBRTU(Node):
 					# 1. 快速拷贝状态（持锁时间极短）
 					if self.write_speed_dir :
 						self.pull_wheel(v_l=self.write_l_speed,v_r = self.write_r_speed,l_dir=self.l_dir,r_dir=self.r_dir)
-						# self.get_logger().info(f'速度{self.lr_speed}')
+						self.get_logger().info(f'L速度{self.write_l_speed} L速度{self.write_r_speed}')
 						self.write_speed_dir = False
 					# 写入使能或者急停
 					if self.write_quick_stop :
