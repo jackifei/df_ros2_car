@@ -35,25 +35,29 @@ hardware_interface::CallbackReturn AckermannBridgeHardware::on_init(
   // 构建关节数据结构
   joints_.clear();
   for (const auto & joint_info : info.joints)
-  {
+{
     JointData jd;
     jd.name = joint_info.name;
 
+    // 始终分配状态指针（无论是否为驱动/转向）
+    jd.state_position = std::make_unique<double>(0.0);
+    jd.state_velocity = std::make_unique<double>(0.0);
+
     for (const auto & cmd_if : joint_info.command_interfaces)
     {
-      if (cmd_if.name == hardware_interface::HW_IF_POSITION)
-        jd.is_steering = true;
-      else if (cmd_if.name == hardware_interface::HW_IF_VELOCITY)
-        jd.is_drive = true;
+        if (cmd_if.name == hardware_interface::HW_IF_POSITION)
+            jd.is_steering = true;
+        else if (cmd_if.name == hardware_interface::HW_IF_VELOCITY)
+            jd.is_drive = true;
     }
 
     if (jd.is_drive)
-      jd.command_velocity = std::make_unique<double>(0.0);
+        jd.command_velocity = std::make_unique<double>(0.0);
     if (jd.is_steering)
-      jd.command_position = std::make_unique<double>(0.0);
+        jd.command_position = std::make_unique<double>(0.0);
 
     joints_.push_back(std::move(jd));
-  }
+}
 
   RCLCPP_INFO(rclcpp::get_logger("AckermannBridgeHardware"),
               "on_init: configured with %zu joints", joints_.size());
@@ -182,32 +186,34 @@ AckermannBridgeHardware::export_command_interfaces()
 hardware_interface::return_type AckermannBridgeHardware::read(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-//  // 尝试获取反馈锁（非阻塞方式？此处使用普通锁，但临界区极小）
-//  std::lock_guard<std::mutex> lock(fb_mutex_);
-//  if (!fb_received_)
-//    return hardware_interface::return_type::OK;
-//
-//  // 将反馈缓冲区内容拷贝到关节状态（预分配，无动态内存）
-//  for (size_t i = 0; i < joints_.size(); ++i)
-//  {
-//    *joints_[i].state_position = fb_buffer_.positions[i];
-//    *joints_[i].state_velocity = fb_buffer_.velocities[i];
-//  }
-//  fb_received_ = false;  // 标记已消费
-////  RCLCPP_INFO(rclcpp::get_logger("AckermannBridgeHardware"),
-////            "read: stored %zu rear, %zu front commands",
-////            idle->rear_velocities.size(), idle->front_positions.size());
-//  return hardware_interface::return_type::OK;
+  // 尝试获取反馈锁（非阻塞方式？此处使用普通锁，但临界区极小）
+  std::lock_guard<std::mutex> lock(fb_mutex_);
+  if (!fb_received_)
+    return hardware_interface::return_type::OK;
 
-  // 开环模式：直接将命令值作为状态反馈（无需等待外部反馈）
+  // 将反馈缓冲区内容拷贝到关节状态（预分配，无动态内存）
   for (size_t i = 0; i < joints_.size(); ++i)
   {
-    if (joints_[i].is_drive && joints_[i].command_velocity)
-      *joints_[i].state_velocity = *joints_[i].command_velocity;
-    if (joints_[i].is_steering && joints_[i].command_position)
-      *joints_[i].state_position = *joints_[i].command_position;
+    *joints_[i].state_position = fb_buffer_.positions[i];
+    *joints_[i].state_velocity = fb_buffer_.velocities[i];
+    // ★ 添加日志 ★
+    RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000,
+        "read: joint[%zu] pos=%.3f vel=%.3f",
+        i, *joints_[i].state_position, *joints_[i].state_velocity);
   }
+  fb_received_ = false;  // 标记已消费
+
   return hardware_interface::return_type::OK;
+
+  // 开环模式：直接将命令值作为状态反馈（无需等待外部反馈）
+//  for (size_t i = 0; i < joints_.size(); ++i)
+//  {
+//    if (joints_[i].is_drive && joints_[i].command_velocity)
+//      *joints_[i].state_velocity = *joints_[i].command_velocity;
+//    if (joints_[i].is_steering && joints_[i].command_position)
+//      *joints_[i].state_position = *joints_[i].command_position;
+//  }
+//  return hardware_interface::return_type::OK;
 }
 
 hardware_interface::return_type AckermannBridgeHardware::write(

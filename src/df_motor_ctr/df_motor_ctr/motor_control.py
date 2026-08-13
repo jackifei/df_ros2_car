@@ -55,6 +55,13 @@ class channel_MBRTU(Node):
 		self.sub_dir = self.create_subscription(Float64,
 		                                        '/df_dir_rt',
 		                                        self.dir_listener_callback_, 10)
+		# ---- 订阅 joy 话题 ----
+		self.subscription = self.create_subscription(Float64MultiArray,
+			'/hardware/front_steering_cmd',
+			self.dir_callback,
+			10
+		)
+		self.angle = 0.0
 		# 创建电机实时状态的发布对象
 		self.cmd_vel_rt_pub = self.create_publisher(JointState,
 		                                            '/hardware/joint_feedback',
@@ -110,6 +117,12 @@ class channel_MBRTU(Node):
 		# 实例对象
 		self.open_port()
 
+	def dir_callback(self, msg: Float64MultiArray):
+		"""收到手柄数据时自动调用"""
+		# ---------- 用户需在此处实现角度计算 ----------
+		# self.get_logger().info(f'转向角度{msg.data[0]}  {msg.data[1]}')
+		self.angle = (msg.data[0] + msg.data[1]) / 2
+
 	def pub_joint_status(self):
 
 		self.motor_status_data.header.stamp = self.get_clock().now().to_msg()
@@ -118,12 +131,12 @@ class channel_MBRTU(Node):
 		# --- 位置 (position) 单位：弧度 (rad) ---
 		# 后轮：位置通常不重要，里程计只用速度，但为了完整性设为 0.0
 		# 前轮：转向角，正值表示左转（根据 REP-103）
-		self.motor_status_data.position = [0.0, 0.0, self.l_dir, self.r_dir]
+		self.motor_status_data.position = [0.0, self.angle, 0.0, self.angle]
 		# --- 速度 (velocity) 单位：弧度/秒 (rad/s) ---
 		# 后轮：分别赋值左右轮的实际转速
 		# 前轮：转向速度通常不用于里程计，设为 0.0
 
-		self.motor_status_data.velocity = [self.v_l_rt , self.v_r_rt, 0.0, 0.0]  # 转向速度设为0
+		self.motor_status_data.velocity = [self.v_l_rt , 0.0, self.v_r_rt, 0.0]  # 转向速度设为0
 
 		self.cmd_vel_rt_pub.publish(self.motor_status_data)
 

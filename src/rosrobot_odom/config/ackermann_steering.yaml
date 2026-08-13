@@ -22,6 +22,10 @@ ackermann_steering_controller:
   ros__parameters:
 
 #    open_loop: true
+    # ----- 里程计设定（全部嵌套在 odometry 命名空间内）-----
+    odom_frame_id: "odom"                        # 里程计坐标系的 frame_id
+    base_frame_id: "base_link"              # 机器人底座的 frame_id
+    enable_odom_tf: true                  # 是否发布 odom -> base_link 的 tf 变换
 
     # ===== 底盘机械参数（务必按实车修改）=====
     wheelbase: 0.36          # 轴距：前轮转向轴 → 后轮驱动轴（单位：米）
@@ -60,10 +64,8 @@ ackermann_steering_controller:
     angular_velocity_max: 0.2   # 最大角速度（rad/s）
     steering_angle_max: 0.52    # 前轮最大转向角（rad），0.52 ≈ 30°
 
-    # ----- 里程计设定（全部嵌套在 odometry 命名空间内）-----
-    odom_frame_id: "odom"                        # 里程计坐标系的 frame_id
-    base_frame_id: "base_link"              # 机器人底座的 frame_id
-    enable_odom_tf: true                  # 是否发布 odom -> base_link 的 tf 变换
+
+
     open_loop: true                       # false：使用编码器闭环计算；true：开环估算
     position_feedback: false
     publish_rate: 50.0                    # 里程计发布频率（Hz）
