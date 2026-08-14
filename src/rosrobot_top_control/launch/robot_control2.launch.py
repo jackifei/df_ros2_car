@@ -48,6 +48,7 @@ def generate_launch_description():
 				'robot_description': robot_desc,
 				'use_sim_time': False,
 			}],
+			# remappings=[('/ackermann_steering_controller/tf_odometry', '/tf'),]
 		))
 
 		controller_yaml_default = PathJoinSubstitution([
@@ -62,13 +63,14 @@ def generate_launch_description():
 			package='controller_manager',
 			executable='ros2_control_node',
 			name='controller_manager',
-			output='both',
+			output='screen',
 			parameters=[
 				controller_yaml,
 				{'use_sim_time': False},
 			],
 			remappings=[
 				('~/robot_description', '/robot_description'),
+				('/ackermann_steering_controller/tf_odometry', '/tf'),
 			],
 		))
 
@@ -81,7 +83,7 @@ def generate_launch_description():
 				'joint_state_broadcaster',
 				'--controller-manager', '/controller_manager',
 			],
-			output='both',
+			output='screen',
 		))
 
 		# 4. ackermann_steering_controller 的 spawner
@@ -97,10 +99,8 @@ def generate_launch_description():
 				# '--ros-args --remap /ackermann_steering_controller/reference:=/cmd_vel',
 				# 如果不采用rosbot_localization，此部分是必须的
 			],
-			output='both',
+			output='screen',
 		))
-
-
 
 
 		# ============================================================

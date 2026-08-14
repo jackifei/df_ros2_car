@@ -231,6 +231,7 @@
     <!-- 左前轮转向：revolute，position 控制（±0.52 rad 限位） -->
     <joint name="lq_joint">
       <command_interface name="position"/>
+      <state_interface name="velocity"/>
       <state_interface name="position"/>
 
     </joint>
@@ -238,60 +239,12 @@
     <!-- 右前轮转向：revolute，position 控制（±0.52 rad 限位） -->
     <joint name="rq_joint">
       <command_interface name="position"/>
+      <state_interface name="velocity"/>
       <state_interface name="position"/>
 
     </joint>
   </ros2_control>
 
-  <!-- ================================================================ -->
-  <!-- gz_ros2_control 系统插件 (Gazebo Harmonic 必需)                    -->
-  <!--                                                                -->
-  <!--   加载 GazeboSimROS2ControlPlugin，                              -->
-  <!--   桥接 Gazebo update 循环与 ros2_control controller_manager      -->
-  <!--   插件文件: libgz_ros2_control-system.so                          -->
-  <!--   参数指向 ros2_control.yaml 控制器配置文件                        -->
-  <!-- ================================================================ -->
-  <gazebo>
-    <plugin
-        name="gz_ros2_control::GazeboSimROS2ControlPlugin"
-        filename="libgz_ros2_control-system.so">
-      <parameters>$(find rosrobot_description)/config/ros2_control.yaml</parameters>
-    </plugin>
-  </gazebo>
-
-  <!-- ================================================================ -->
-  <!-- Gazebo Harmonic LiDAR 激光雷达传感器                              -->
-  <!--                                                                -->
-  <!-- Gazebo Harmonic 不再使用 libgazebo_ros_ray_sensor.so 桥接插件       -->
-  <!--   传感器数据发布到 Gazebo 内部 topic: /lidar                       -->
-  <!--   由 ros_gz_bridge 桥接到 ROS /scan (LaserScan)                    -->
-  <!--                                                                -->
-  <!--   传感器安装在 lidar_Link 上，360° 扫描，15 Hz 更新率               -->
-  <!-- ================================================================ -->
-  <gazebo reference="lidar_Link">
-    <sensor name="lidar" type="gpu_lidar">
-      <pose>0 0 0 0 0 0</pose>
-      <topic>lidar</topic>
-      <update_rate>15</update_rate>
-      <ray>
-        <scan>
-          <horizontal>
-            <samples>360</samples>
-            <resolution>1</resolution>
-            <min_angle>-3.14159</min_angle>
-            <max_angle>3.14159</max_angle>
-          </horizontal>
-        </scan>
-        <range>
-          <min>0.12</min>
-          <max>12.0</max>
-          <resolution>0.02</resolution>
-        </range>
-      </ray>
-      <always_on>1</always_on>
-      <visualize>false</visualize>
-    </sensor>
-  </gazebo>
 
   <!-- ================================================================ -->
   <!-- Gazebo 物理材质 — 后轮摩擦系数（驱动轮需要足够抓地力）              -->

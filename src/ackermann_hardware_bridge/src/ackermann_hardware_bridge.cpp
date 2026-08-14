@@ -196,10 +196,10 @@ hardware_interface::return_type AckermannBridgeHardware::read(
   {
     *joints_[i].state_position = fb_buffer_.positions[i];
     *joints_[i].state_velocity = fb_buffer_.velocities[i];
-    // ★ 添加日志 ★
-    RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000,
-        "read: joint[%zu] pos=%.3f vel=%.3f",
-        i, *joints_[i].state_position, *joints_[i].state_velocity);
+//    // ★ 添加日志 ★
+//    RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000,
+//        "read: joint[%zu] pos=%.3f vel=%.3f",
+//        i, *joints_[i].state_position, *joints_[i].state_velocity);
   }
   fb_received_ = false;  // 标记已消费
 
