@@ -11,10 +11,13 @@ slam_toolbox:
     resolution: 0.02
     max_laser_range: 8.0
 
+    odom_linear_covariance: 0.1
+
+
     # ---------- 阿克曼低速专用优化 ----------
     ransform_tolerance: 0.2        # 时间戳对齐
-    minimum_travel_distance: 0.05   # 最小进行距离
-    minimum_travel_heading: 0.02    # 最小进行弧度
+    minimum_travel_distance: 0.1   # 最小进行距离
+    minimum_travel_heading: 0.1    # 最小进行弧度
     scan_buffer_size: 15            # 扫描缓冲区大小 阿克曼小车转弯半径大，
     # 需要更多历史扫描帧来做闭环。当前 scan_buffer_size: 10 偏小，建议增大到 15~20。
 
@@ -32,3 +35,114 @@ slam_toolbox:
 #      /scan:
 #        subscription:
 #          reliability: best_effort
+#dengfei@jackifei-ubuntu:~$ ros2 param list /slam_toolbox
+#1. 基础 ROS 参数 (ROS Parameters)
+#odom_frame: 里程计坐标系名称（默认：odom）
+#map_frame: 地图坐标系名称（默认：map）
+#base_frame: 机器人基坐标系名称（默认：base_footprint 或 base_link）
+#scan_topic: 激光雷达数据话题（默认：/scan）
+#mode: 工作模式，可选 mapping（建图）或 localization（定位）
+#use_map_saver: 是否启用地图保存功能（默认：true）
+#debug_logging: 是否启用调试日志（默认：false）
+#2. 地图与性能参数 (Map & Performance)
+#resolution: 地图分辨率，单位：米（默认：0.05）
+#map_update_interval: 地图更新间隔，单位：秒（默认：5.0）
+#min_laser_range: 最小激光距离，用于栅格化（默认：0.0）
+#max_laser_range: 最大激光距离，用于栅格化（默认：20.0）
+#throttle_scans: 扫描数据处理频率（1 表示全部处理）
+#transform_publish_period: TF 发布周期，单位：秒（默认：0.02，设为 0 则不发布里程计）
+#minimum_time_interval: 最小时间间隔，单位：秒（默认：0.5）
+#tf_buffer_duration: TF 缓存持续时间，单位：秒（默认：30.0）
+#stack_size_to_use: 序列化大地图所需的栈大小（默认：40000000）
+#3. 扫描匹配参数 (Scan Matching)
+#use_scan_matching: 是否启用扫描匹配（默认：true）
+#use_scan_barycenter: 是否使用扫描重心对齐（默认：true）
+#minimum_travel_distance: 触发更新的最小移动距离，单位：米（默认：0.3）
+#minimum_travel_heading: 触发更新的最小转向角度，单位：弧度（默认：约 0.087，即5度）
+#scan_buffer_size: 扫描缓冲区大小（默认：67）
+#scan_buffer_maximum_scan_distance: 缓冲区最大扫描距离，单位：米（默认：20.0）
+#4. 回环检测参数 (Loop Closure)
+#do_loop_closing: 是否进行回环检测（默认：true）
+#loop_search_maximum_distance: 回环搜索最大距离，单位：米（默认：4.0）
+#loop_match_minimum_chain_size: 回环匹配最小链长度（默认：10）
+#loop_match_maximum_variance_coarse: 粗匹配最大方差（默认：0.16）
+#loop_match_minimum_response_coarse: 粗匹配最小响应值（默认：0.7）
+#loop_match_minimum_response_fine: 精细匹配最小响应值（默认：0.5）
+#5. 求解器插件参数 (Solver Plugin)
+#solver_plugin: 优化算法底层实现（默认：solver_plugins::CeresSolver）
+#ceres_linear_solver: 线性求解器（默认：SPARSE_NORMAL_CHOLESKY）
+#ceres_preconditioner: 预处理器（默认：SCHUR_JACOBI）
+#ceres_trust_strategy: 信任策略（默认：LEVENBERG_MARQUARDT）
+#ceres_loss_function: 损失函数（默认：None）
+#  /bond_disable_heartbeat_timeout
+#  angle_variance_penalty
+#  base_frame
+#  ceres_dogleg_type
+#  ceres_linear_solver
+#  ceres_loss_function
+#  ceres_preconditioner
+#  ceres_trust_strategy
+#  check_min_dist_and_heading_precisely
+#  coarse_angle_resolution
+#  coarse_search_angle_offset
+#  correlation_search_space_dimension
+#  correlation_search_space_resolution
+#  correlation_search_space_smear_deviation
+#  debug_logging
+#  distance_variance_penalty
+#  do_loop_closing
+#  enable_interactive_mode
+#  fine_search_angle_offset
+#  interactive_mode
+#  link_match_minimum_response_fine
+#  link_scan_maximum_distance
+#  loop_match_maximum_variance_coarse
+#  loop_match_minimum_chain_size
+#  loop_match_minimum_response_coarse
+#  loop_match_minimum_response_fine
+#  loop_search_maximum_distance
+#  loop_search_space_dimension
+#  loop_search_space_resolution
+#  loop_search_space_smear_deviation
+#  map_file_name
+#  map_frame
+#  map_name
+#  map_start_at_dock
+#  map_start_pose
+#  map_update_interval
+#  min_pass_through
+#  minimum_angle_penalty
+#  minimum_distance_penalty
+#  minimum_time_interval
+#  minimum_travel_distance
+#  minimum_travel_heading
+#  mode
+#  occupancy_threshold
+#  odom_frame
+#  paused_new_measurements
+#  paused_processing
+#  position_covariance_scale
+#  qos_overrides./tf.publisher.depth
+#  qos_overrides./tf.publisher.durability
+#  qos_overrides./tf.publisher.history
+#  qos_overrides./tf.publisher.reliability
+#  resolution
+#  restamp_tf
+#  scan_buffer_maximum_scan_distance
+#  scan_buffer_size
+#  scan_queue_size
+#  scan_topic
+#  solver_plugin
+#  stack_size_to_use
+#  start_type_description_service
+#  tf_buffer_duration
+#  throttle_scans
+#  transform_publish_period
+#  transform_timeout
+#  use_lifecycle_manager
+#  use_map_saver
+#  use_response_expansion
+#  use_scan_barycenter
+#  use_scan_matching
+#  use_sim_time
+#  yaw_covariance_scale

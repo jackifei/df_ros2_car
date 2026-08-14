@@ -31,44 +31,51 @@ def generate_launch_description():
         # arguments=['--ros-args', '--log-level', 'info']
     )
 
+    # 生命周期管理器，自动 configure + activate
+    lifecycle_manager = Node(
+        package='nav2_lifecycle_manager',
+        executable='lifecycle_manager',
+        name='lifecycle_manager_slam',
+        output='screen',
+        parameters=[{
+            'node_names': ['slam_toolbox'],
+            'autostart': True,  # 自动执行 configure → activate
+            'bond_timeout': 0.0,  # 等待节点响应的超时时间
+            'bond_enabled': False,
+        }]
+    )
     # 延时 2 秒后自动配置并激活生命周期节点
     # transition id: 1 = configure, 3 = activate
-    auto_activate = TimerAction(
-        period=2.0,
-        actions=[
-            LogInfo(msg='Configuring slam_toolbox...'),
-            ExecuteProcess(
-                cmd=['ros2', 'service', 'call', '/slam_toolbox/change_state',
-                     'lifecycle_msgs/srv/ChangeState',
-                     '{transition: {id: 1}}'],
-                output='screen'
-            ),
-            LogInfo(msg='Waiting 1 second before activating...'),
-            ExecuteProcess(
-                cmd=['sleep', '2'],  # 确保 configure 完成
-                output='screen'
-            ),
-            LogInfo(msg='Activating slam_toolbox...'),
-            ExecuteProcess(
-                cmd=['ros2', 'service', 'call', '/slam_toolbox/change_state',
-                     'lifecycle_msgs/srv/ChangeState',
-                     '{transition: {id: 3}}'],
-                output='screen'
-            ),
-        ]
-    )
+    # auto_activate = TimerAction(
+    #     period=2.0,
+    #     actions=[
+    #         LogInfo(msg='Configuring slam_toolbox...'),
+    #         ExecuteProcess(
+    #             cmd=['ros2', 'service', 'call', '/slam_toolbox/change_state',
+    #                  'lifecycle_msgs/srv/ChangeState',
+    #                  '{transition: {id: 1}}'],
+    #             output='screen'
+    #         ),
+    #         LogInfo(msg='Waiting 1 second before activating...'),
+    #         ExecuteProcess(
+    #             cmd=['sleep', '2'],  # 确保 configure 完成
+    #             output='screen'
+    #         ),
+    #         LogInfo(msg='Activating slam_toolbox...'),
+    #         ExecuteProcess(
+    #             cmd=['ros2', 'service', 'call', '/slam_toolbox/change_state',
+    #                  'lifecycle_msgs/srv/ChangeState',
+    #                  '{transition: {id: 3}}'],
+    #             output='screen'
+    #         ),
+    #     ]
+    # )
 
 
     return LaunchDescription([
             slam_toolbox_node,
-            auto_activate,
+            lifecycle_manager,
+            # auto_activate,
         ])
 
-        # Rviz2 可视化窗口
-        # Node(
-        #     package='rviz2',
-        #     executable='rviz2',
-        #     name='rviz2',
-        #     arguments=['-d', rviz_config_file],
-        #     output='screen',
-        # ),
+
