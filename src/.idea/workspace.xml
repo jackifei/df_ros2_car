@@ -1,0 +1,723 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="af6ce219-b814-4e19-ad4c-36ea783455e6" name="更改" comment="对slam参数进行修改和完善">
+      <change afterPath="$PROJECT_DIR$/rosrobot_slam_map/config/参数.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/src.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/src.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rosrobot_slam_map/config/slam_params.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/rosrobot_slam_map/config/slam_params.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/控制说明.md" beforeDir="false" afterPath="$PROJECT_DIR$/控制说明.md" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$/.." value="main" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {}
+}</component>
+  <component name="GitHubPullRequestState">{
+  &quot;prStates&quot;: [
+    {
+      &quot;id&quot;: {
+        &quot;id&quot;: &quot;PR_kwDOTWwdms762il-&quot;,
+        &quot;number&quot;: 1
+      },
+      &quot;lastSeen&quot;: 1786670317853
+    }
+  ]
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/jackifei/df_ros2_car.git&quot;,
+    &quot;accountId&quot;: &quot;7a04f7cd-5479-4b9a-b4e1-d0a4cbf02614&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2
+}</component>
+  <component name="ProjectId" id="3GkgFr7B3TvbYWxOytodFhrlywH" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.测试程序.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;roscontrol 上的 #1&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/dengfei/dfros/df_ros2_car/src/rosrobot_navigation/maps&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;vcs.log&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RdControllerToolWindowsLayoutState" isNewUi="true">
+    <layout>
+      <window_info id="Merge Requests" />
+      <window_info id="Backup and Sync History" />
+      <window_info id="Commit_Guest" show_stripe_button="false" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.50051546" weight="0.12050781" />
+      <window_info active="true" id="Commit" order="1" sideWeight="0.50051546" visible="true" weight="0.12050781" />
+      <window_info id="Structure" order="2" sideWeight="0.49948454" side_tool="true" weight="0.16503906" />
+      <window_info id="Pull Requests" order="3" sideWeight="0.50051546" weight="0.3298828" />
+      <window_info id="Learn" order="4" show_stripe_button="false" weight="0.09707031" />
+      <window_info id="Bookmarks" order="5" sideWeight="0.49948454" side_tool="true" weight="0.16503906" />
+      <window_info anchor="bottom" id="Database Changes" />
+      <window_info anchor="bottom" id="TypeScript" />
+      <window_info anchor="bottom" id="File Transfer" />
+      <window_info anchor="bottom" id="HfCacheToolWindow" />
+      <window_info anchor="bottom" id="Problems" order="0" />
+      <window_info anchor="bottom" id="Problems View" order="1" weight="0.37259614" />
+      <window_info anchor="bottom" id="Services" order="2" />
+      <window_info anchor="bottom" id="Python Packages" order="3" weight="0.1" />
+      <window_info anchor="bottom" id="Find" order="4" sideWeight="0.49948454" weight="0.37259614" />
+      <window_info anchor="bottom" id="TODO" order="5" weight="0.30528846" />
+      <window_info anchor="bottom" id="Terminal" order="6" weight="0.33028847" />
+      <window_info anchor="bottom" id="Python Console" order="7" weight="0.1" />
+      <window_info active="true" anchor="bottom" id="Run" order="8" visible="true" weight="0.098557696" />
+      <window_info anchor="bottom" id="Version Control" order="9" weight="0.3860577" />
+      <window_info anchor="right" id="documentation.v2" show_stripe_button="false" side_tool="true" />
+      <window_info anchor="right" id="SciView" />
+      <window_info anchor="right" id="Notifications" order="0" weight="0.3298828" />
+      <window_info anchor="right" id="AIAssistant" order="1" weight="0.3298828" />
+      <window_info anchor="right" id="Database" order="2" weight="0.25" />
+      <window_info anchor="right" id="Gradle" order="3" weight="0.25" />
+      <window_info anchor="right" id="Maven" order="4" weight="0.25" />
+      <window_info anchor="right" id="Plots" order="5" weight="0.1" />
+      <window_info anchor="right" id="Translation.Wordbook" order="6" show_stripe_button="false" side_tool="true" weight="0.3298828" />
+      <window_info anchor="right" id="Jupyter Variables" order="7" side_tool="true" weight="0.3298828" />
+      <window_info anchor="right" id="Coverage" order="8" show_stripe_button="false" side_tool="true" weight="0.3298828" />
+      <window_info anchor="right" id="Endpoints" order="9" show_stripe_button="false" weight="0.3298828" />
+    </layout>
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/rosrobot_navigation/maps" />
+      <recent name="$PROJECT_DIR$/rosrobot_top_control/config" />
+      <recent name="$PROJECT_DIR$/rosrobot_navigation/config" />
+      <recent name="$PROJECT_DIR$/rosrobot_navigation/launch" />
+      <recent name="$PROJECT_DIR$/map" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/rosrobot_odom/acker_diff" />
+      <recent name="$PROJECT_DIR$/rosrobot_odom/config" />
+      <recent name="$PROJECT_DIR$/rosrobot_navigation" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="测试程序" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="src" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/统计" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/统计/测试程序.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.测试程序" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-PY-261.27258.51" />
+        <option value="bundled-python-sdk-84eaadda3698-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.27258.51" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="af6ce219-b814-4e19-ad4c-36ea783455e6" name="更改" comment="" />
+      <created>1784520881083</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1784520881083</updated>
+      <workItem from="1784520883201" duration="4912000" />
+      <workItem from="1784528121940" duration="45000" />
+      <workItem from="1784528422324" duration="4937000" />
+      <workItem from="1784534295236" duration="939000" />
+      <workItem from="1784626147207" duration="9031000" />
+      <workItem from="1784856382519" duration="18557000" />
+      <workItem from="1784944719732" duration="25820000" />
+      <workItem from="1785123098979" duration="12730000" />
+      <workItem from="1785201195370" duration="29739000" />
+      <workItem from="1785377897692" duration="349000" />
+      <workItem from="1785478975845" duration="6527000" />
+      <workItem from="1785493617161" duration="3322000" />
+      <workItem from="1785551068948" duration="16094000" />
+      <workItem from="1785727753244" duration="17206000" />
+      <workItem from="1785824706731" duration="10712000" />
+      <workItem from="1785895141120" duration="2021000" />
+      <workItem from="1785897182875" duration="9699000" />
+      <workItem from="1785924611944" duration="1833000" />
+      <workItem from="1785927171709" duration="2858000" />
+      <workItem from="1785995636424" duration="16340000" />
+      <workItem from="1786065787698" duration="26953000" />
+      <workItem from="1786509882726" duration="13162000" />
+      <workItem from="1786610368860" duration="8156000" />
+      <workItem from="1786669909604" duration="4845000" />
+      <workItem from="1786678022525" duration="11531000" />
+      <workItem from="1786697412527" duration="3779000" />
+      <workItem from="1787105501294" duration="3318000" />
+      <workItem from="1787109033346" duration="7662000" />
+      <workItem from="1787128633857" duration="79000" />
+      <workItem from="1787129097660" duration="43000" />
+      <workItem from="1787129393885" duration="143000" />
+      <workItem from="1787129600277" duration="394000" />
+    </task>
+    <task id="LOCAL-00060" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496146518</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496146518</updated>
+    </task>
+    <task id="LOCAL-00061" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496331345</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496331345</updated>
+    </task>
+    <task id="LOCAL-00062" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496413706</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496413707</updated>
+    </task>
+    <task id="LOCAL-00063" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496467073</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496467073</updated>
+    </task>
+    <task id="LOCAL-00064" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496534527</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496534527</updated>
+    </task>
+    <task id="LOCAL-00065" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496663428</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496663428</updated>
+    </task>
+    <task id="LOCAL-00066" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496723601</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496723601</updated>
+    </task>
+    <task id="LOCAL-00067" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496781318</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496781318</updated>
+    </task>
+    <task id="LOCAL-00068" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496841209</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496841209</updated>
+    </task>
+    <task id="LOCAL-00069" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496846378</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496846378</updated>
+    </task>
+    <task id="LOCAL-00070" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496871807</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496871807</updated>
+    </task>
+    <task id="LOCAL-00071" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496892830</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496892830</updated>
+    </task>
+    <task id="LOCAL-00072" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785496966951</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1785496966951</updated>
+    </task>
+    <task id="LOCAL-00073" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785551115182</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1785551115182</updated>
+    </task>
+    <task id="LOCAL-00074" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785570066211</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1785570066211</updated>
+    </task>
+    <task id="LOCAL-00075" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785578451513</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1785578451513</updated>
+    </task>
+    <task id="LOCAL-00076" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785578884338</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1785578884338</updated>
+    </task>
+    <task id="LOCAL-00077" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785579370195</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1785579370195</updated>
+    </task>
+    <task id="LOCAL-00078" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785754298449</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1785754298450</updated>
+    </task>
+    <task id="LOCAL-00079" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785754792137</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1785754792137</updated>
+    </task>
+    <task id="LOCAL-00080" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785754797106</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1785754797106</updated>
+    </task>
+    <task id="LOCAL-00081" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785756939372</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1785756939372</updated>
+    </task>
+    <task id="LOCAL-00082" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785839548417</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1785839548418</updated>
+    </task>
+    <task id="LOCAL-00083" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785897764146</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1785897764147</updated>
+    </task>
+    <task id="LOCAL-00084" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785929604065</created>
+      <option name="number" value="00084" />
+      <option name="presentableId" value="LOCAL-00084" />
+      <option name="project" value="LOCAL" />
+      <updated>1785929604065</updated>
+    </task>
+    <task id="LOCAL-00085" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785929724386</created>
+      <option name="number" value="00085" />
+      <option name="presentableId" value="LOCAL-00085" />
+      <option name="project" value="LOCAL" />
+      <updated>1785929724386</updated>
+    </task>
+    <task id="LOCAL-00086" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785929864750</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
+      <option name="project" value="LOCAL" />
+      <updated>1785929864750</updated>
+    </task>
+    <task id="LOCAL-00087" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1785929976019</created>
+      <option name="number" value="00087" />
+      <option name="presentableId" value="LOCAL-00087" />
+      <option name="project" value="LOCAL" />
+      <updated>1785929976019</updated>
+    </task>
+    <task id="LOCAL-00088" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1786012712357</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1786012712358</updated>
+    </task>
+    <task id="LOCAL-00089" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1786012829578</created>
+      <option name="number" value="00089" />
+      <option name="presentableId" value="LOCAL-00089" />
+      <option name="project" value="LOCAL" />
+      <updated>1786012829578</updated>
+    </task>
+    <task id="LOCAL-00090" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1786012897601</created>
+      <option name="number" value="00090" />
+      <option name="presentableId" value="LOCAL-00090" />
+      <option name="project" value="LOCAL" />
+      <updated>1786012897601</updated>
+    </task>
+    <task id="LOCAL-00091" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1786012984813</created>
+      <option name="number" value="00091" />
+      <option name="presentableId" value="LOCAL-00091" />
+      <option name="project" value="LOCAL" />
+      <updated>1786012984813</updated>
+    </task>
+    <task id="LOCAL-00092" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1786065923733</created>
+      <option name="number" value="00092" />
+      <option name="presentableId" value="LOCAL-00092" />
+      <option name="project" value="LOCAL" />
+      <updated>1786065923734</updated>
+    </task>
+    <task id="LOCAL-00093" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1786067687903</created>
+      <option name="number" value="00093" />
+      <option name="presentableId" value="LOCAL-00093" />
+      <option name="project" value="LOCAL" />
+      <updated>1786067687903</updated>
+    </task>
+    <task id="LOCAL-00094" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1786067816422</created>
+      <option name="number" value="00094" />
+      <option name="presentableId" value="LOCAL-00094" />
+      <option name="project" value="LOCAL" />
+      <updated>1786067816422</updated>
+    </task>
+    <task id="LOCAL-00095" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1786067919121</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1786067919121</updated>
+    </task>
+    <task id="LOCAL-00096" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1786068018510</created>
+      <option name="number" value="00096" />
+      <option name="presentableId" value="LOCAL-00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1786068018511</updated>
+    </task>
+    <task id="LOCAL-00097" summary="Merge remote-tracking branch 'origin/roscontrol' into roscontrol&#10;&#10;# Conflicts:&#10;#&#9;src/rosrobot_odom/config/ackermann_steering.yaml&#10;#&#9;src/控制说明.md">
+      <option name="closed" value="true" />
+      <created>1786068241093</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1786068241093</updated>
+    </task>
+    <task id="LOCAL-00098" summary="Merge remote-tracking branch 'origin/roscontrol' into roscontrol&#10;&#10;# Conflicts:&#10;#&#9;src/rosrobot_odom/config/ackermann_steering.yaml&#10;#&#9;src/控制说明.md">
+      <option name="closed" value="true" />
+      <created>1786102968194</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1786102968194</updated>
+    </task>
+    <task id="LOCAL-00099" summary="Merge remote-tracking branch 'origin/roscontrol' into roscontrol&#10;&#10;# Conflicts:&#10;#&#9;src/rosrobot_odom/config/ackermann_steering.yaml&#10;#&#9;src/控制说明.md">
+      <option name="closed" value="true" />
+      <created>1786530240932</created>
+      <option name="number" value="00099" />
+      <option name="presentableId" value="LOCAL-00099" />
+      <option name="project" value="LOCAL" />
+      <updated>1786530240932</updated>
+    </task>
+    <task id="LOCAL-00100" summary="修改了控制器的write写入速度，速度单位是弧度/s，转向单位是角度，并且修改了转向角度为内轮转角和外轮转角的平均值">
+      <option name="closed" value="true" />
+      <created>1786530340349</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1786530340349</updated>
+    </task>
+    <task id="LOCAL-00101" summary="修改了控制器的write写入速度，速度单位是弧度/s，转向单位是角度，并且修改了转向角度为内轮转角和外轮转角的平均值">
+      <option name="closed" value="true" />
+      <created>1786619642644</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
+      <option name="project" value="LOCAL" />
+      <updated>1786619642644</updated>
+    </task>
+    <task id="LOCAL-00102" summary="修改了控制器的write写入速度，速度单位是弧度/s，转向单位是角度，并且修改了转向角度为内轮转角和外轮转角的平均值">
+      <option name="closed" value="true" />
+      <created>1786619727656</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1786619727656</updated>
+    </task>
+    <task id="LOCAL-00103" summary="修改了控制器的write写入速度，速度单位是弧度/s，转向单位是角度，并且修改了转向角度为内轮转角和外轮转角的平均值">
+      <option name="closed" value="true" />
+      <created>1786619739844</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1786619739844</updated>
+    </task>
+    <task id="LOCAL-00104" summary="修改了控制器的write写入速度，速度单位是弧度/s，转向单位是角度，并且修改了转向角度为内轮转角和外轮转角的平均值">
+      <option name="closed" value="true" />
+      <created>1786619837745</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1786619837745</updated>
+    </task>
+    <task id="LOCAL-00105" summary="修改了控制器的write写入速度，速度单位是弧度/s，转向单位是角度，并且修改了转向角度为内轮转角和外轮转角的平均值">
+      <option name="closed" value="true" />
+      <created>1786620068042</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1786620068042</updated>
+    </task>
+    <task id="LOCAL-00106" summary="增加了桥接接口，将ros control的里tf变换转换成tf，现在可以正常使用了">
+      <option name="closed" value="true" />
+      <created>1786697236763</created>
+      <option name="number" value="00106" />
+      <option name="presentableId" value="LOCAL-00106" />
+      <option name="project" value="LOCAL" />
+      <updated>1786697236763</updated>
+    </task>
+    <task id="LOCAL-00107" summary="对slam参数进行修改和完善">
+      <option name="closed" value="true" />
+      <created>1786702981870</created>
+      <option name="number" value="00107" />
+      <option name="presentableId" value="LOCAL-00107" />
+      <option name="project" value="LOCAL" />
+      <updated>1786702981870</updated>
+    </task>
+    <task id="LOCAL-00108" summary="对slam参数进行修改和完善">
+      <option name="closed" value="true" />
+      <created>1786703100601</created>
+      <option name="number" value="00108" />
+      <option name="presentableId" value="LOCAL-00108" />
+      <option name="project" value="LOCAL" />
+      <updated>1786703100601</updated>
+    </task>
+    <option name="localTasksCounter" value="109" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="OPEN_GENERIC_TABS">
+      <map>
+        <entry key="c1ec9a6f-1555-4831-a9e8-98f95394a70d" value="TOOL_WINDOW" />
+      </map>
+    </option>
+    <option name="RECENT_FILTERS">
+      <map>
+        <entry key="Branch">
+          <value>
+            <list>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="HEAD" />
+                </option>
+              </RecentGroup>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="main" />
+                </option>
+              </RecentGroup>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="origin/main" />
+                </option>
+              </RecentGroup>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="origin/roscontrol" />
+                </option>
+              </RecentGroup>
+            </list>
+          </value>
+        </entry>
+        <entry key="User">
+          <value>
+            <list>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="*" />
+                </option>
+              </RecentGroup>
+            </list>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="CUSTOM_BOOLEAN_PROPERTIES">
+                <map>
+                  <entry key="Show.Git.Branches" value="true" />
+                </map>
+              </option>
+              <option name="FILTERS">
+                <map>
+                  <entry key="date">
+                    <value>
+                      <list>
+                        <option value="1785980436799" />
+                        <option value="" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+        <entry key="c1ec9a6f-1555-4831-a9e8-98f95394a70d">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="origin/roscontrol" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="测试" />
+    <MESSAGE value="Merge remote-tracking branch 'origin/main'" />
+    <MESSAGE value="修改bug" />
+    <MESSAGE value="Merge remote-tracking branch 'origin/roscontrol' into roscontrol&#10;&#10;# Conflicts:&#10;#&#9;src/rosrobot_odom/config/ackermann_steering.yaml&#10;#&#9;src/控制说明.md" />
+    <MESSAGE value="修复bug" />
+    <MESSAGE value="修改了控制器的write写入速度，速度单位是弧度/s，转向单位是角度，并且修改了转向角度为内轮转角和外轮转角的平均值" />
+    <MESSAGE value="增加了桥接接口，将ros control的里tf变换转换成tf，现在可以正常使用了" />
+    <MESSAGE value="对slam参数进行修改和完善" />
+    <option name="LAST_COMMIT_MESSAGE" value="对slam参数进行修改和完善" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/src$.coverage" NAME="测试程序 覆盖结果" MODIFIED="1786526751860" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/统计" />
+  </component>
+</project>
