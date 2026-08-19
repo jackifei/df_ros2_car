@@ -99,6 +99,19 @@ def generate_launch_description():
         include_twist_mux = IncludeLaunchDescription(PythonLaunchDescriptionSource(existing_launch_path))
         
         nodes.append(include_twist_mux)
+
+        # ============================================================
+        # 1. launch 启动   服务器桥接，
+        # ============================================================
+        server_bridge_launch_path = os.path.join(
+            FindPackageShare(package='rosrobot_top_control').find('rosrobot_top_control'),
+            'launch', 
+            'server_bridge.launch.py'
+        )
+        print(f"启动 服务器桥接 文件")
+        server_bridge = IncludeLaunchDescription(PythonLaunchDescriptionSource(server_bridge_launch_path))
+        
+        nodes.append(server_bridge)
         # ============================================================
         # 2. 启动IMU  ACM0
         # ============================================================
