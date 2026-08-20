@@ -16,7 +16,7 @@ slam_toolbox:
     mode: mapping                   # mapping/localization
 
     max_laser_range: 8.0            # 激光最大距离
-    # min_pass_through: 0.15           # 最小通过距离
+    # min_pass_through: 0.15        # 最小通过距离
     throttle_scans: 1               # 扫描将采样
     use_scan_barycenter: false      # 是否使用扫描质心替代原始点云（减少计算量）
     use_scan_matching: true         # 是否启用扫描匹配（关闭后只靠里程计更新
@@ -37,7 +37,7 @@ slam_toolbox:
     minimum_travel_heading: 0.05    # 机器人旋转多少弧度后才触发一次地图更新
     minimum_time_interval: 0.5    # 两次更新之间的最短时间间隔（秒）
     check_min_dist_and_heading_precisely: false   # 是否精确检查最小位移/角度（避免跳过小运动）
-    ransform_tolerance: 0.2        # 时间戳对齐
+    # ransform_tolerance: 0.2        # 时间戳对齐
     scan_buffer_size: 15            # 扫描缓冲区大小 阿克曼小车转弯半径大，
     # 需要更多历史扫描帧来做闭环。当前 scan_buffer_size: 10 偏小，建议增大到 15~20。
 
@@ -59,8 +59,8 @@ slam_toolbox:
     loop_closure_min_score: 0.7     # 闭环匹配最小分数
 
     loop_match_minimum_chain_size: 10	# 闭环候选链的最小长度（帧数）
-    loop_match_minimum_response_coarse:	0.55	# 粗匹配阶段闭环最小响应值
-    loop_match_minimum_response_fine: 0.75	# 精匹配阶段闭环最小响应值
+    loop_match_minimum_response_coarse:	0.45	# 粗匹配阶段闭环最小响应值
+    loop_match_minimum_response_fine: 0.35	# 精匹配阶段闭环最小响应值
     loop_match_maximum_variance_coarse: 3.0	# 粗匹配最大允许方差（控制匹配质量）
     loop_search_maximum_distance: 7.5	# 闭环搜索半径（米）
     loop_search_space_dimension: 8.0	# 闭环搜索空间尺寸（米×米）
