@@ -7,11 +7,11 @@ import serial.tools.list_ports
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64, Float64MultiArray
 import math
-from sensor_msgs.msg import Imu
 
-class JoyToServoNode(Node):
+
+class IMU_PID_DIR_Node(Node):
     def __init__(self):
-        super().__init__('joy_to_servo_node')
+        super().__init__('IMU_PID_DIR_Node')
 
         # ---- 声明可配置参数 ----
         self.declare_parameter('port', '/dev/ttyUSB0')
@@ -40,56 +40,12 @@ class JoyToServoNode(Node):
 
         # 创建前轮转向角度的位置发布话题
         self.pub = self.create_publisher(Float64, '/df_dir_rt', 10)
-        # 订阅IMU数据，主要使用航向角
-        # self.sub_imu = self.create_subscription(
-        #     Imu,
-        #     'imu/data',
-        #     self.imu_callback,
-        #     10
-        # )
-
+        
         self.motor_status_data = Float64()
         self.motor_status_data.data = 0.0
         
         self.get_logger().info('🎮 等待手柄数据...')
 
-    def imu_callback(self,msg:Imu):
-        """接收imu数据，进行PID计算"""
-        # 首先提取四元数
-        qx = msg.orientation.x
-        qy = msg.orientation.y
-        qz = msg.orientation.z
-        qw = msg.orientation.w
-        # 根据四元数计算航向角
-        self.imu_roll, self.imu_pitch, self.imu_yaw = self.quaternion_to_euler(qx, qy, qz, qw)
-        self.get_logger().info(f'横滚 {math.degrees(self.imu_roll):.4f}° '
-                               f'俯仰 {math.degrees(self.imu_pitch):.4f}° '
-                               f'航向 {math.degrees(self.imu_yaw):.4f}°')
-
-    @staticmethod
-    def quaternion_to_euler(x, y, z, w):
-        """
-        将四元数转换为欧拉角（ZYX 旋转顺序）
-        返回: (roll, pitch, yaw) 单位：弧度
-        """
-        # 计算 roll (x-axis rotation)
-        sinr_cosp = 2.0 * (w * x + y * z)
-        cosr_cosp = 1.0 - 2.0 * (x * x + y * y)
-        roll = math.atan2(sinr_cosp, cosr_cosp)
-
-        # 计算 pitch (y-axis rotation)
-        sinp = 2.0 * (w * y - z * x)
-        if abs(sinp) >= 1:
-            pitch = math.copysign(math.pi / 2, sinp)  # 使用90度，避免超出范围
-        else:
-            pitch = math.asin(sinp)
-
-        # 计算 yaw (z-axis rotation)
-        siny_cosp = 2.0 * (w * z + x * y)
-        cosy_cosp = 1.0 - 2.0 * (y * y + z * z)
-        yaw = math.atan2(siny_cosp, cosy_cosp)
-
-        return roll, pitch, yaw
     def dir_callback_(self, msg: Float64MultiArray):
         """收到手柄数据时自动调用"""
         # ---------- 用户需在此处实现角度计算 ----------
@@ -132,7 +88,7 @@ class JoyToServoNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = JoyToServoNode()
+    node = IMU_PID_DIR_Node()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

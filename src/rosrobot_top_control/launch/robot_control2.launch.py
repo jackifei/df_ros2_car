@@ -118,16 +118,16 @@ def generate_launch_description():
 		# ============================================================
 		# 2. 启动IMU  ACM0
 		# ============================================================
-		pkg_share = get_package_share_directory('dm_imu')
-		config_path_imu = os.path.join(pkg_share, 'config', 'params.yaml')
+		# pkg_share = get_package_share_directory('dm_imu')
+		# config_path_imu = os.path.join(pkg_share, 'config', 'params.yaml')
 
-		nodes.append(Node(
-			package='dm_imu',
-			executable='dm_imu_node',
-			name='dm_imu',
-			output='screen',
-			parameters=[config_path_imu]
-		))
+		# nodes.append(Node(
+		# 	package='dm_imu',
+		# 	executable='dm_imu_node',
+		# 	name='dm_imu',
+		# 	output='screen',
+		# 	parameters=[config_path_imu]
+		# ))
 
 		# ============================================================
 		# 3. 启动阿克曼电子差速器，用来计算后轮差速及前轮转向
@@ -200,7 +200,7 @@ def generate_launch_description():
 				'--z', '0',
 				'--roll', '0',
 				'--pitch', '0',
-				'--yaw', '-0.08',  # 绕Z轴旋转180度
+				'--yaw', '-0.09',  # 绕Z轴旋转180度
 				'--frame-id', 'lidar_Link',  # 要旋转的link名称id
 				'--child-frame-id', 'lidar_Link_sub'  # 变换后的id，然后雷达的发布节点需要绑定此sub节点
 			]

@@ -94,6 +94,9 @@ class channel_MBRTU(Node):
 		self.v_l_rt = 0
 		self.v_r_rt = 0
 
+		# self.rt_l_speed_rad = 0.0
+		# self.rt_l_speed_rad = 0.0
+
 		# self.wheel_diameter_m = 0.125   # 后轮驱动轮的直径
 		#self.wheel_track = 0.39   # 后轮轮距
 
@@ -235,7 +238,12 @@ class channel_MBRTU(Node):
 		"""
 		# self.get_logger().info(f'{msg.data[0]}  {msg.data[1]}')
 		# self.l_speed = self.linear_velocity_to_rpm(msg.data[0])
+		
 		# self.r_speed = self.linear_velocity_to_rpm(msg.data[1])
+		# 速度反馈使用下发指令
+		self.v_l_rt = msg.data[1]
+		self.v_r_rt = msg.data[0]
+
 		self.l_speed = self.rad_per_sec_to_rpm(msg.data[1])
 		self.r_speed = self.rad_per_sec_to_rpm(msg.data[0])
 		# self.get_logger().info(f'---L  {self.l_speed}  ----R  {self.r_speed}')
@@ -356,8 +364,11 @@ class channel_MBRTU(Node):
 					result_pos_r,result_rpm_r, moto_status_l_r,moto_status_r_r = self.read_slave_data(slave=self.slave2)
 					
 					# 通过转速rpm计算线速度，并且添加到twist中，进行发布
-					self.v_l_rt =  round(self.rpm_to_rad_per_sec(result_rpm_l),1)
-					self.v_r_rt  =  round(self.rpm_to_rad_per_sec(result_rpm_r) * -1,1)
+					# self.v_l_rt =  round(self.rpm_to_rad_per_sec(result_rpm_l),1)
+					# self.v_r_rt  =  round(self.rpm_to_rad_per_sec(result_rpm_r) * -1,1)
+
+					# self.v_l_rt =  round(self.rpm_to_rad_per_sec(self.write_l_speed),1)
+					# self.v_r_rt  =  round(self.rpm_to_rad_per_sec(self.write_r_speed) * -1,1)
 
 					# self.get_logger().info(f'速度L{v_l} 速度R{v_r} ') 
 					# 线速度
@@ -368,7 +379,7 @@ class channel_MBRTU(Node):
 					# 1. 快速拷贝状态（持锁时间极短）
 					if self.write_speed_dir :
 						self.pull_wheel(v_l=self.write_l_speed,v_r = self.write_r_speed,l_dir=self.l_dir,r_dir=self.r_dir)
-						self.get_logger().info(f'L速度{self.write_l_speed} L速度{self.write_r_speed}')
+						# self.get_logger().info(f'L速度{self.write_l_speed} L速度{self.write_r_speed}')
 						self.write_speed_dir = False
 					# 写入使能或者急停
 					if self.write_quick_stop :

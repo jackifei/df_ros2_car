@@ -23,8 +23,8 @@ slam_toolbox:
 
     # ---------- 地图参数 ----------
     odom_linear_covariance: 0.5
-    resolution: 0.02                # 地图分辨率（米/像素），越小越精细但内存越大
-    map_update_interval: 1.0        # 全图更新间隔（秒），数值越大更新越慢
+    resolution: 0.03                # 地图分辨率（米/像素），越小越精细但内存越大
+    map_update_interval: 1.5        # 全图更新间隔（秒），数值越大更新越慢
     map_name: map
     map_file_name: map
     map_start_at_dock: false
@@ -33,23 +33,23 @@ slam_toolbox:
     use_map_saver: true
 
     # ---------- 运动触发更新 ----------
-    minimum_travel_distance: 0.1   # 机器人移动多少米后才触发一次地图更新
+    minimum_travel_distance: 0.2   # 机器人移动多少米后才触发一次地图更新
     minimum_travel_heading: 0.05    # 机器人旋转多少弧度后才触发一次地图更新
     minimum_time_interval: 0.5    # 两次更新之间的最短时间间隔（秒）
     check_min_dist_and_heading_precisely: false   # 是否精确检查最小位移/角度（避免跳过小运动）
     # ransform_tolerance: 0.2        # 时间戳对齐
-    scan_buffer_size: 15            # 扫描缓冲区大小 阿克曼小车转弯半径大，
+    scan_buffer_size: 20            # 扫描缓冲区大小 阿克曼小车转弯半径大，
     # 需要更多历史扫描帧来做闭环。当前 scan_buffer_size: 10 偏小，建议增大到 15~20。
 
     # ---------- 扫描匹配相关 ----------
-    correlation_search_space_dimension:	1.5	# 粗搜索空间尺寸（米×米）
-    correlation_search_space_resolution: 0.015	# 粗搜索步长（米）
+    correlation_search_space_dimension:	2.0	# 粗搜索空间尺寸（米×米）
+    correlation_search_space_resolution: 0.025	# 粗搜索步长（米）
     correlation_search_space_smear_deviation: 0.03	# 模糊化标准差（平滑似然场）
     coarse_angle_resolution: 0.0524	# 粗搜索角度分辨率（弧度≈2°）
     coarse_search_angle_offset: 0.349	# 粗搜索角度范围偏移（弧度≈20°）
     fine_search_angle_offset: 0.087	# 精搜索角度范围偏移（弧度≈5°）
     link_match_minimum_response_fine: 0.35	# 帧间匹配最小响应值（低于此认为匹配失败）
-    link_scan_maximum_distance: 1.5	# 帧间匹配的最大搜索距离（米）
+    link_scan_maximum_distance: 3.5	# 帧间匹配的最大搜索距离（米）
     use_response_expansion: false	# 是否动态扩展响应阈值（自适应调整）
 
 
