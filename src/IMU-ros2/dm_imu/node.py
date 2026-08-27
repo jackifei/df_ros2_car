@@ -29,7 +29,7 @@ class DmImuNode(Node):
         super().__init__('dm_imu')
 
         # ---------- Parameters ----------
-        self.declare_parameter('port', '/dev/ttyACM0')
+        self.declare_parameter('port', '/dev/ttyACM1')
         self.declare_parameter('baudrate', 921600)
         self.declare_parameter('frame_id', 'imu_link')
         self.declare_parameter('publish_rpy_in_degree', True) # 若希望 /imu/rpy 以“度”发布，把 False 改 True
