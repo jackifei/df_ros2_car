@@ -195,7 +195,7 @@ ros2 launch rosrobot_top_control server_bridge.launch.py
 ## 9. 已知注意事项与待办
 
 - **端口权限**：系统重新插拔 USB 后，需确认串口端口号与实际设备对应（IMU ttyACM0、雷达 ttyACM1、转向串口），并检查 udev 权限。
-- **EKF launch 占位符**：`ekf_localization.launch.py` 中仍使用占位包名 `your_package_name`，直接运行会找不到配置路径，需要改为实际包名 `robot_localization_config`。
+- **EKF launch 占位符**：`ekf_localization.launch.py` 中仍使用占位包名 `your_package_name`，直接运行会找不到配置路径，需要改为实际包名 `robot_localization`。
 - **EKF 参数注释不一致**：`ekf_params.yaml` 中部分注释（如"融合线速度 ✓"）与开关值（false）不一致，调参时以实际值为准。
 - **双链路并存**：`robot_control.launch.py`（自研）与 `robot_control2.launch.py`（ros2_control）并存，两套链路不可同时启动，避免重复控制与话题冲突。
 - **历史文档**：`统计/方案.md`、`统计/完成.md` 是早期 joystick_bridge 架构的方案与交付文档，与本分支实际结构不一致，仅作参考。

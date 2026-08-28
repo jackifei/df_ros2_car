@@ -21,7 +21,7 @@ setup(
     zip_safe=True,
     maintainer='user',
     maintainer_email='793709242@qq.com',
-    description='EKF robot_localization_config config for Ackermann robot at 50Hz',
+    description='EKF robot_localization config for Ackermann robot at 50Hz',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={},
