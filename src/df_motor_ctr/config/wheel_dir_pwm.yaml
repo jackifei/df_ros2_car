@@ -1,5 +1,27 @@
-/wheel_dir_pwm:
+/joy_to_servo_node:
   ros__parameters:
+    # ---- 串口参数 ----
     port: '/dev/ttyUSB0'
     baudrate: 115200
     timeout: 0.5
+
+    # ---- IMU 订阅与航向 PID 参数 ----
+    imu_topic: '/imu/data'
+    heading_control_enabled: true
+    straight_steering_threshold: 0.1
+    heading_settle_time: 0.2
+
+    # ---- IMU 故障检测与恢复参数 ----
+    imu_timeout: 0.5
+    yaw_jump_max_deg: 30.0
+    imu_invalid_frames_before_fault: 10
+    imu_recover_time: 1.0
+    max_yaw_error_deg: 15.0
+
+    # ---- PID 参数 ----
+    heading_kp: 0.6
+    heading_ki: 0.0
+    heading_kd: 0.0
+    heading_correction_sign: -1.0
+    heading_correction_limit_deg: 8.0
+    heading_integral_limit_deg: 5.0

@@ -53,7 +53,7 @@ def generate_launch_description():
     )
     use_ekf_arg = DeclareLaunchArgument(
         'use_ekf', default_value='true',
-        description='Enable EKF fusion via robot_localization_config'
+        description='Enable EKF fusion via robot_localization'
     )
     use_chassis_arg = DeclareLaunchArgument(
         'use_chassis', default_value='false',

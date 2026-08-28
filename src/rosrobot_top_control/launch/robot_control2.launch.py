@@ -102,6 +102,52 @@ def generate_launch_description():
 			output='screen',
 		))
 
+		# ============================================================
+		# 5. EKF 定位融合 —— robot_localization 的 ekf_node
+		#    融合 /ackermann_steering_controller/odometry 与 /imu/data，
+		#    输出 /odometry/filtered，并发布 odom -> base_link 的 TF。
+		#    注意：
+		#       - 阿克曼控制器需已发布 /ackermann_steering_controller/odometry；
+		#       - IMU 驱动需已发布 /imu/data，frame_id 为 imu_link。
+		# ============================================================
+
+		# 5.1 base_link -> imu_link 静态 TF
+		#     robot_localization 需要把 IMU 数据从 imu_link 变换到 base_link。
+		#     如果 IMU 实际安装位置/朝向有偏移，请修改 --x/--y/--z/--roll/--pitch/--yaw。
+		nodes.append(Node(
+			package='tf2_ros',
+			executable='static_transform_publisher',
+			name='base_link_to_imu_link',
+			output='screen',
+			arguments=[
+				'--x', '0',
+				'--y', '0',
+				'--z', '0',
+				'--roll', '0',
+				'--pitch', '0',
+				'--yaw', '0',
+				'--frame-id', 'base_link',
+				'--child-frame-id', 'imu_link',
+			],
+		))
+
+		# 5.2 EKF 节点，参数文件见 robot_localization_config/config/ekf_params.yaml
+		config_path_ekf = os.path.join(
+			get_package_share_directory('robot_localization_config'),
+			'config',
+			'ekf_params.yaml'
+		)
+		nodes.append(Node(
+			package='robot_localization',
+			executable='ekf_node',
+			name='ekf_filter_node',
+			output='screen',
+			parameters=[
+				config_path_ekf,
+				{'use_sim_time': False},
+			],
+		))
+
 
 		# ============================================================
 		# 1. launch 启动   启动twist选择器，并且启动手柄节点，
