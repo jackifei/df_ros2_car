@@ -5,13 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="af6ce219-b814-4e19-ad4c-36ea783455e6" name="更改" comment="对slam参数进行修改和完善">
-      <change afterPath="$PROJECT_DIR$/rosrobot_slam_map/config/参数.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/src.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/src.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rosrobot_slam_map/config/slam_params.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/rosrobot_slam_map/config/slam_params.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/控制说明.md" beforeDir="false" afterPath="$PROJECT_DIR$/控制说明.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,23 +31,13 @@
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {}
 }</component>
-  <component name="GitHubPullRequestState">{
-  &quot;prStates&quot;: [
-    {
-      &quot;id&quot;: {
-        &quot;id&quot;: &quot;PR_kwDOTWwdms762il-&quot;,
-        &quot;number&quot;: 1
-      },
-      &quot;lastSeen&quot;: 1786670317853
-    }
-  ]
-}</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/jackifei/df_ros2_car.git&quot;,
-    &quot;accountId&quot;: &quot;7a04f7cd-5479-4b9a-b4e1-d0a4cbf02614&quot;
+  <component name="GitHubPullRequestState"><![CDATA[{}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/jackifei/df_ros2_car.git",
+    "accountId": "2a2252e6-10e8-4b08-ad59-b52ce8ac8b76"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
 }</component>
@@ -215,6 +200,7 @@
       <workItem from="1787129097660" duration="43000" />
       <workItem from="1787129393885" duration="143000" />
       <workItem from="1787129600277" duration="394000" />
+      <workItem from="1787974251621" duration="306000" />
     </task>
     <task id="LOCAL-00060" summary="修改bug">
       <option name="closed" value="true" />

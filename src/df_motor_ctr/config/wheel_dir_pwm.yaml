@@ -1,12 +1,12 @@
 /joy_to_servo_node:
   ros__parameters:
     # ---- 串口参数 ----
-    port: '/dev/ttyUSB0'
+    port: '/dev/ttyUSB2'
     baudrate: 115200
     timeout: 0.5
 
     # ---- IMU 订阅与航向 PID 参数 ----
-    imu_topic: '/imu/data'
+    imu_topic: '/imu/data_raw'
     heading_control_enabled: true
     straight_steering_threshold: 0.1
     heading_settle_time: 0.2

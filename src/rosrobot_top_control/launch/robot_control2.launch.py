@@ -51,6 +51,55 @@ def generate_launch_description():
 			# remappings=[('/ackermann_steering_controller/tf_odometry', '/tf'),]
 		))
 
+		# ============================================================
+		# 2. 启动IMU
+		# ============================================================
+		pkg_share = get_package_share_directory('imu_ros2_device')
+		config_path_imu = os.path.join(pkg_share, 'config', 'imu_filter_param.yaml')
+
+		nodes.append(Node(
+			package='imu_ros2_device',
+			executable='ybimu_driver',
+			name='ybimu_driver',
+			output='screen',
+			parameters=[config_path_imu]
+		))
+		# ============================================================
+		# 7. lidar 启动雷达扫描 —— 可视化
+		#    获取scan数据：
+		# ============================================================
+		lidar_config_path = os.path.join(
+			get_package_share_directory('lidar_pkg'),
+			'config',
+			'lidar_params.yaml'
+		)
+		nodes.append(Node(
+			package='lidar_pkg',
+			executable='lidar_node',
+			name='lidar_node',
+			output='screen',
+			parameters=[lidar_config_path]
+		))
+		# ============================================================
+		# 8. 添加Z轴180度旋转的静态坐标变换
+		# ============================================================
+		nodes.append(Node(
+			package='tf2_ros',
+			executable='static_transform_publisher',
+			name='lidar_z_rotation',
+			output='screen',
+			arguments=[
+				'--x', '0',
+				'--y', '0',
+				'--z', '0',
+				'--roll', '0',
+				'--pitch', '0',
+				'--yaw', '-0.09',  # 绕Z轴旋转180度
+				'--frame-id', 'lidar_Link',  # 要旋转的link名称id
+				'--child-frame-id', 'lidar_Link_sub'  # 变换后的id，然后雷达的发布节点需要绑定此sub节点
+			]
+		))
+
 		controller_yaml_default = PathJoinSubstitution([
 			FindPackageShare('rosrobot_odom'),
 			'config',
@@ -131,22 +180,22 @@ def generate_launch_description():
 			],
 		))
 
-		# 5.2 EKF 节点，参数文件见 robot_localization_config/config/ekf_params.yaml
-		config_path_ekf = os.path.join(
-			get_package_share_directory('robot_localization_config'),
-			'config',
-			'ekf_params.yaml'
-		)
-		nodes.append(Node(
-			package='robot_localization',
-			executable='ekf_node',
-			name='ekf_filter_node',
-			output='screen',
-			parameters=[
-				config_path_ekf,
-				{'use_sim_time': False},
-			],
-		))
+		# # 5.2 EKF 节点，参数文件见 robot_localization_config/config/ekf_params.yaml
+		# config_path_ekf = os.path.join(
+		# 	get_package_share_directory('robot_localization_config'),
+		# 	'config',
+		# 	'ekf_params.yaml'
+		# )
+		# nodes.append(Node(
+		# 	package='robot_localization',
+		# 	executable='ekf_node',
+		# 	name='ekf_filter_node',
+		# 	output='screen',
+		# 	parameters=[
+		# 		config_path_ekf,
+		# 		{'use_sim_time': False},
+		# 	],
+		# ))
 
 
 		# ============================================================
@@ -161,19 +210,7 @@ def generate_launch_description():
 
 		nodes.append(include_twist_mux)
  		
-		# ============================================================
-		# 2. 启动IMU  ACM0
-		# ============================================================
-		# pkg_share = get_package_share_directory('dm_imu')
-		# config_path_imu = os.path.join(pkg_share, 'config', 'params.yaml')
 
-		# nodes.append(Node(
-		# 	package='dm_imu',
-		# 	executable='dm_imu_node',
-		# 	name='dm_imu',
-		# 	output='screen',
-		# 	parameters=[config_path_imu]
-		# ))
 
 		# ============================================================
 		# 3. 启动阿克曼电子差速器，用来计算后轮差速及前轮转向
@@ -216,41 +253,7 @@ def generate_launch_description():
 			parameters=[config_path_dir]
 		))
 
-		# ============================================================
-		# 7. lidar 启动雷达扫描 —— 可视化
-		#    获取scan数据：
-		# ============================================================
-		lidar_config_path = os.path.join(
-			get_package_share_directory('lidar_pkg'),
-			'config',
-			'lidar_params.yaml'
-		)
-		nodes.append(Node(
-			package='lidar_pkg',
-			executable='lidar_node',
-			name='lidar_node',
-			output='screen',
-			parameters=[lidar_config_path]
-		))
-		# ============================================================
-		# 8. 添加Z轴180度旋转的静态坐标变换
-		# ============================================================
-		nodes.append(Node(
-			package='tf2_ros',
-			executable='static_transform_publisher',
-			name='lidar_z_rotation',
-			output='screen',
-			arguments=[
-				'--x', '0',
-				'--y', '0',
-				'--z', '0',
-				'--roll', '0',
-				'--pitch', '0',
-				'--yaw', '-0.09',  # 绕Z轴旋转180度
-				'--frame-id', 'lidar_Link',  # 要旋转的link名称id
-				'--child-frame-id', 'lidar_Link_sub'  # 变换后的id，然后雷达的发布节点需要绑定此sub节点
-			]
-		))
+
 
 		# ============================================================
 		# 8. RViz2 —— 可视化

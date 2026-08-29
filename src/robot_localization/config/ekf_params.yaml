@@ -18,6 +18,7 @@
 
 ekf_filter_node:
   ros__parameters:
+    enable: false
     frequency: 50.0                 # EKF 更新频率，与阿克曼里程计/IMU 一致
     sensor_timeout: 0.1             # 传感器超时（s），50Hz 下约 5 个周期
     two_d_mode: true                # 2D 平面模式
