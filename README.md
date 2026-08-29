@@ -1,45 +1,142 @@
-# 本版本使用ros control中的阿克曼控制器进行小车底盘驱动
-不同于main分支，main是通过自己写代码实现的额阿克曼控制器，以及差速控制等功能
-使用ros control，可简化程序结构，方便使用现有模块进行开发
+# 阿克曼小车  使用 ros control 阿克曼控制器版本
 
-## 启动机器人：launch文件启动
-ros2 launch rosrobot_top_control robot_control.launch.py
-### 启动机器人后，可通过按手柄的start开启手柄，手柄5分钟无输入会自动睡眠，需要重启
+> 日期：2026-08-19
+> ROS2 版本：Jazzy
+> 秦皇岛文视科技有限公司
+#官方链接，请一定参考官方链接参数项，各个版本ros 参数不同，以免踩坑
+> 
+'https://control.ros.org/jazzy/doc/ros2_controllers/steering_controllers_library/doc/userdoc.html#steering-controllers-library-userdoc'
+> 
+---
+
+## 一、操作说明
+
+### 1.1 启动项 ✅
+
+---
+
+使用控制器一般需要注意的问题
+参数 enable_odom_tf: true 确实会让控制器发布 TF
+但发布的目标话题是: /ackermann_steering_controller/tf_odometry
+（一个 tf2_msgs/msg/TFMessage 话题），而不是全局 /tf；
+这是 ros2_control 为了避免多个控制器同时写 /tf 造成冲突而设计的隔离机制——
+每个控制器把自己的 TF 发到自己的专属话题，由用户决定是否转发到全局 /tf
+
+所以一般需要将节点进行转换，发布
+可使用topic_tools relay节点进行转发，也可以在launch文件中进行remapping
+使用话题工具进行转化，请使用一下指令
+ros2 run topic_tools relay /ackermann_steering_controller/tf_odometry /tf
+如果使用launch文件继续凝转发，在节点控制中，ros2_control_node进行转发
+
+---
+
+# 使用Ackermann进行控制小车
+* 通过以下指令启动小车
+>ros2 launch rosrobot_top_control robot_control2.launch.py
+---
+rosbridge_server此部分的launch启动已经集成到robot_control2中
+* 指令启动启动web服务器
+ros2 run rosbridge_server rosbridge_websocket
+* 使用launch启动
+ros2 launch rosrobot_top_control server_bridge.launch.py
+---
+
+---
+
+### 启动雷达建图
+> ros2 launch rosrobot_slam_map slam.launch.py
+>
+>IMU启动指令 
+ros2 launch imu_ros2_device ybimu_display.launch.py
+
+* 通过以下指令进行查询slam版本
+> apt list --installed | grep slam-toolbox # 本版本使用的ros-jazzy-slam-toolbox版本 2.8.5
+* 需要启动slamtool以后才可以通过以下指令查看所有参数
+> ros2 param list /slam_toolbox # 查看工具箱的参数，版本不同参数有些许不同最好装完包后直接list
+
+* 需要注意的是，建图使用的参数需要根据实车进行调整和设置
+* 启动雷达建图后，需要在Rviz中手动添加雷达显示窗口，或者再rviz配置文件中添加显示窗口
+---
 
 
-
-# 启动雷达建图
-ros2 launch rosrobot_slam_map slam.launch.py
-* 启动雷达建图后，需要在Rviz中手动添加雷达显示窗口
-* cd 到map目录然后执行
+### 保存地图
+* cd 到map目录,想要保存的目录文件夹中，然后执行
 * ros2 run nav2_map_server map_saver_cli -f map
 * map.pgm文件  地图灰度图（黑=障碍，白=空闲，灰=未知）  灰度图格式，存储地图的视觉信息
 * map.yaml文件  地图配置文件（存储地图分辨率、原点、阈值等关键参数，供导航栈加载使用）
 *（使用rviz2可视化 slamtool工件保存，因为各种原因容易保存不上，最好执行以上指令）
+---
 
-# 验证部分
-## 启动导航节点，并加载地图显示
+
+### 没有遥控器的情况下，需要启动键盘
+启动手柄节点，启动手柄节点转换器，启动nav和遥控器joy分配器
+ros2 launch rosrobot_top_control robot_twist_mux.launch.py
+---
+### 正常启动后，所有的话题名称如下
+执行 ros2 topic list
+
+* /ackermann_steering_controller/controller_state
+* /ackermann_steering_controller/odometry
+* /ackermann_steering_controller/reference
+* /ackermann_steering_controller/tf_odometry
+* /ackermann_steering_controller/transition_event
+
+* /cmd_vel_joy    手柄
+* /cmd_vel_nav    导航
+* /cmd_vel_pub    手柄和导航通过选择器后发布的话题，/cmd_vel是ros control默认读取的话题名称，_pub调试使用
+---
+
+### 验证地图是否创建完成可加载部分
+#### 启动导航节点，并加载地图显示
 ros2 launch rosrobot_navigation nav_control.launch.py
-
-需要将rviz显示的 displays中的globaloptions中的fixed frame 的odom修改为map
-导航的时候基准坐标系变成map，切换成map后，会报错，坐标系错误，但是启动导航后，会正确显示
-
+* 需要将rviz显示的 displays中的globaloptions中的fixed frame 的odom修改为map
+* 导航的时候基准坐标系变成map，切换成map后，会报错，坐标系错误，但是启动导航后，会正确显示
 * 加载地图，需要加载地图，将地图加载成/map进行发布
 * 验证地图是否加载，可以使用nav_control.launch.py文件中的静态TF变换，完成map到odom的变换
-ros2 run rosrobot_navigation rosrobot_nav
 
-# 启动导航节点，自动导航
+
+
+## 启动导航节点，自动导航
 ros2 launch rosrobot_navigation nav_auto.launch.py
-* 如果没有显示地图，需要重新添加map话题订阅地图
+* 如果没有显示地图，rviz2需要重新添加map话题订阅地图
+* 以上launch文件加载的参数为config中的nav2_params.yaml
+* 参数比较多，关键小车参数需要修改实车大小
 
+# 查看声明周期节点是否运行
+ros2 lifecycle get /controller_server
+ros2 lifecycle get /bt_navigator
+ros2 lifecycle get /planner_server
+ros2 lifecycle get /amcl
+ros2 lifecycle get /map_server
 
-1、首先重定位，初始化初始位置
+### 导航操作流程
+* 首先重定位，初始化初始位置，通过rviz界面的重定位工具，设置小车的初始位置
+* 
 
+# 以下为参数的块内容注释
+对原始配置文件的 全部 16 个模块 的每一项参数添加了详细的中文注释，包括：
+序号	    模块	                    说明
+1	    AMCL	                自适应蒙特卡洛定位（粒子滤波参数、运动噪声模型、波束跳跃等） 地图上定位机器人位置的工具
+2	    BT Navigator	        行为树导航器（行为树循环、超时、错误码）
+3	    Controller Server	    MPPI控制器（时间步长、采样、评判器Critics：GoalCritic/CostCritic/PathAlignCritic等8种）
+4	    Local Costmap	        局部代价地图（滚动窗口、体素层、膨胀层、扫描配置）
+5	    Global Costmap	        全局代价地图（静态层、障碍物层、未知空间追踪）
+6	    Map Server	            地图服务器（保留注释说明）  加载，提供，存储地图的工具
+7	    Map Saver	            地图保存器（空闲/占用阈值）
+8	    Planner Server	        全局规划器（Navfn/Dijkstra/A*） 路径规划工具
+9	    Smoother Server	        路径平滑器（迭代优化参数）
+10	    Behavior Server	        恢复行为（spin/backup/drive_on_heading/wait/assisted_teleop）
+11	    Waypoint Follower	    航点跟随器（航点暂停、失败处理）
+12	    Route Server	        路由服务器（路线图、重新规划、碰撞监控）
+13	    Velocity Smoother	    速度平滑器（加速度/减速度限制、死区、开环/闭环模式）
+14	    Collision Monitor	    碰撞监视器（多边形检测、接近策略、传感器配置）
+15	    Docking Server	        自动回充对接（预对接位姿、外部检测参数、对接控制器）
+16	    Loopback Simulator	    回环模拟器（仿真激光雷达参数）
+17      Lifecycle Manager       生命周期工具及看门狗
 
-
-
-
-
+# 系统备份使用
+systemback-sustart
+# 安装及编译网上搜索如何安装systemback
 
 
 
@@ -165,3 +262,14 @@ sudo curl https://packages.osrfoundation.org/gazebo.gpg --output /usr/share/keyr
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] https://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
 sudo apt-get update
 sudo apt-get install gz-harmonic
+
+
+
+# 其他说明
+## ros2_control 用来解耦控制逻辑与硬件细节，让开发者专注于控制算法，而非硬件驱动
+os2_control 的核心目标是解耦控制逻辑与硬件细节，让开发者专注于控制算法（如速度控制、位置控制），而非硬件驱动的具体实现。其主要功能包括：
+
+硬件抽象：定义统一的硬件接口（如位置、速度、力控接口），屏蔽不同硬件的驱动差异。
+控制器管理：通过 controller_manager 统一管理多个控制器（如底盘控制器、机械臂关节控制器），支持动态加载、切换和卸载。
+实时性支持：兼容实时操作系统（如带 RT_PREEMPT 补丁的 Linux），满足机器人控制的实时性需求（如毫秒级响应）。
+仿真与真实硬件兼容：同一套控制逻辑可在 Gazebo 等仿真环境和真实硬件上运行，无需修改代码。
