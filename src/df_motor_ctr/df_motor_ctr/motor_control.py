@@ -556,6 +556,7 @@ class channel_MBRTU(Node):
 					device_id=self.slave2  # 从机地址
 				)
 		except Exception as e:
+			self.get_logger().info(f"写入使能错误")
 			self.get_logger().info(f"error: {e}") 
 			return False 
 

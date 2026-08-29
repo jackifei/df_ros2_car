@@ -24,7 +24,7 @@ class JoyToServoNode(Node):
 
 		# ---- 声明 IMU 航向 PID 相关参数 ----
 		# 这些参数可通过 launch/yaml 或命令行覆盖，方便实车调试时调整。
-		self.declare_parameter('imu_topic', '/imu/data')  # 订阅哪个 IMU 话题
+		self.declare_parameter('imu_topic', '/imu/data_raw')  # 订阅哪个 IMU 话题
 		self.declare_parameter('heading_control_enabled', True)  # 航向保持总开关
 		self.declare_parameter('straight_steering_threshold', 0.1)  # 转向角在 [-0.1, 0.1] rad 内判定为直行并启用 PID
 		self.declare_parameter('heading_settle_time', 0.2)  # 转弯后重新直行时，等待航向稳定再锁定参考航向的时间(s)
@@ -109,14 +109,14 @@ class JoyToServoNode(Node):
 	def dir_callback(self, msg: Float64):
 		"""收到前轮转向指令时自动调用"""
 		# 上游发布的是弧度，按原有协议转换为发送给舵机的角度值。
-		base_angle = (((msg.data[0] + msg.data[1]) / 2) / math.pi) * 180
+		angle = (((msg.data[0] + msg.data[1]) / 2) / math.pi) * 180
 
 		# 只在转向角位于 ±0.1 rad 内（直行）时使用 IMU 航向 PID 修正；
 		# 转弯时 _compute_heading_correction 会返回 0，不使用 PID 数据。
-		heading_correction = self._compute_heading_correction(msg.data)
-
+		# heading_correction = self._compute_heading_correction(msg.data)
+		# self.get_logger().info(f"{heading_correction}")
 		# 最终发送角度 = 原始转向角 + 航向保持修正量
-		angle = base_angle + heading_correction
+		# angle = base_angle + heading_correction
 
 		# 限幅 0~180
 		# angle = max(1.0, min(180.0, angle)) # 取消限制幅度，通过前序话题进行限制
@@ -139,6 +139,9 @@ class JoyToServoNode(Node):
         只保存“最新 yaw”，不在这里直接写串口；
         真正的控制输出仍然由 dir_callback 按转向指令频率统一发送。
         """
+
+		pass
+		return
 		now = self.get_clock().now()
 		yaw = self._yaw_from_quaternion(
 			msg.orientation.x,

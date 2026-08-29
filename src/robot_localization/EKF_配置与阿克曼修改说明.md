@@ -116,7 +116,7 @@ imu0_remove_gravitational_acceleration: true
 
 ### 3.4 9 轴 IMU 可开启的额外参数
 
-我的 IMU 是 9 轴（加速度计 + 陀螺仪 + 磁力计），理论上可以提供：
+你的 IMU 是 9 轴（加速度计 + 陀螺仪 + 磁力计），理论上可以提供：
 
 - `orientation`：roll / pitch / yaw，其中 yaw 由磁力计辅助，基本不随时间漂移。
 - `angular_velocity`：陀螺仪角速度。
