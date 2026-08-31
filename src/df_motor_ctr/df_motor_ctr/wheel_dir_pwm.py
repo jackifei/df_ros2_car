@@ -6,7 +6,7 @@ from rclpy.node import Node
 
 import serial
 from sensor_msgs.msg import Imu
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64 ,Float64MultiArray
 
 
 class JoyToServoNode(Node):
