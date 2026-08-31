@@ -1,7 +1,7 @@
 /joy_to_servo_node:
   ros__parameters:
     # ---- 串口参数 ----
-    port: '/dev/ttyUSB2'
+    port: '/dev/ttyUSB0'
     baudrate: 115200
     timeout: 0.5
 

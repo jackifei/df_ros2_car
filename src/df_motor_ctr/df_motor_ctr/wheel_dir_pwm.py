@@ -19,6 +19,8 @@ class JoyToServoNode(Node):
 		self.declare_parameter('timeout', 0.5)
 
 		port = self.get_parameter('port').value
+
+		# print(f"转向端口是：{port}")
 		baudrate = self.get_parameter('baudrate').value
 		timeout = self.get_parameter('timeout').value
 
@@ -56,12 +58,13 @@ class JoyToServoNode(Node):
 		self._heading_correction_limit_deg = self.get_parameter('heading_correction_limit_deg').value
 		self._heading_integral_limit_deg = self.get_parameter('heading_integral_limit_deg').value
 
+		self.get_logger().info(f'✅ 转向端口是 {port} 已打开，波特率 {baudrate}')
 		# ---- 打开串口 ----
 		try:
 			self.ser = serial.Serial(port, baudrate, timeout=timeout)
-			self.get_logger().info(f'✅ 串口 {port} 已打开，波特率 {baudrate}')
+			self.get_logger().info(f'✅ 转向端口是 {port} 已打开，波特率 {baudrate}')
 		except serial.SerialException as e:
-			self.get_logger().error(f'❌ 无法打开串口 {port}: {e}')
+			self.get_logger().error(f'❌ 无法打开转向端口是 {port}: {e}')
 			raise SystemExit(1)
 
 		# ---- 订阅前轮转向指令话题 ----

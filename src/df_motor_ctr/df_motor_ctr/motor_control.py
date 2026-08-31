@@ -1,15 +1,9 @@
 import rclpy
-import serial
 import time
 import threading
 from pymodbus.client import ModbusSerialClient
-from sensor_msgs.msg import Joy
-from geometry_msgs.msg import Twist
-from std_msgs.msg import String
-import logging
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64, Float64MultiArray
-import json
 from rclpy.node import Node             # ROS2 节点类
 import math
 
@@ -34,38 +28,46 @@ class motor_status:
 class channel_MBRTU(Node):
 	"""MB线程控制器 """
 
-	def __init__(self,name,port: str):
-		super().__init__(name)
+	def __init__(self):
+		super().__init__("df_motor_status")
 
 		# ---- 声明可配置参数 ----
 		self.dir_data = 0.0
-		self.declare_parameter('port', '/dev/ttyUSB1')
+		self.declare_parameter('port', '/dev/ttyUSB2')
 		self.declare_parameter('wheel_track', 0.39)
 		self.declare_parameter('wheel_diameter_m', 0.125)
 		self.port = self.get_parameter('port').value
 		self.wheel_track = self.get_parameter('wheel_track').value
 		self.wheel_diameter_m = self.get_parameter('wheel_diameter_m').value
 		# self.wheel_diameter_m = 0.125
-		# 创建ROS2订阅节点 需要订阅后轮速度节点，用来数据计算
+
 		# 此处需要修改，上一个话题的发布是50HZ，对于点击驱动来说，相应不了这么高的频率
 		# 由于发布频率的问题，需要修改为转速当变化时才进行写入，并且为int类型，下位机采用modbus协议，只能是int
+		# 订阅后轮速度节点，用来数据计算
 		self.sub = self.create_subscription(Float64MultiArray,
 		                                    '/hardware/rear_wheel_cmd',
-		                                    self.listener_callback, 10)     # 创建订阅者对象（消息类型、话题名、订阅者回调函数、队列长度）
+		                                    self.listener_callback,
+		                                    10)
+		# 订阅前轮转向指令
+		# ---- 订阅 front_steering_cmd 前轮转向 话题 ----
+		self.subscription = self.create_subscription(Float64MultiArray,
+		                                             '/hardware/front_steering_cmd',
+		                                             self.dir_callback,
+		                                             10
+		                                             )
+		# 订阅前轮转向试试角度
 		self.sub_dir = self.create_subscription(Float64,
 		                                        '/df_dir_rt',
 		                                        self.dir_listener_callback_, 10)
-		# ---- 订阅 joy 话题 ----
-		self.subscription = self.create_subscription(Float64MultiArray,
-			'/hardware/front_steering_cmd',
-			self.dir_callback,
-			10
-		)
+
 		self.angle = 0.0
+
 		# 创建电机实时状态的发布对象
+		# 此窗台用来反馈给阿克曼控制器
 		self.cmd_vel_rt_pub = self.create_publisher(JointState,
 		                                            '/hardware/joint_feedback',
 		                                            10)
+
 		self.motor_status_data = JointState()
 		# self.motor_status_data.velocity = [0.0,0.0]
 
@@ -299,17 +301,17 @@ class channel_MBRTU(Node):
 			# 添加串口就绪等待
 			time.sleep(0.1)
 			self.state = "open"
-			self.get_logger().info(f'1端口打开成功')
+			self.get_logger().info(f'✈️ 1端口打开成功')
 			# 启动线程
 			# self.start()
-			self.get_logger().info(f'2电机进入待机状态')
-			self.get_logger().info(f'3初始状态使能')
+			self.get_logger().info(f'✈️ 2电机进入待机状态')
+			self.get_logger().info(f'✈️ 3初始状态使能')
 			self.enable_motor(flag=True)
-			self.get_logger().info(f'4使能完成')
-			self.get_logger().info(f'5设置初始速度0,初始方向')
+			self.get_logger().info(f'✈️ 4使能完成')
+			self.get_logger().info(f'✈️ 5设置初始速度0,初始方向')
 			self.pull_wheel(v_l=0,v_r = 0,l_dir=0,r_dir=0)
 			time.sleep(0.1)
-			self.get_logger().info(f'6启动电机控制线程')
+			self.get_logger().info(f'✈️ 6启动电机控制线程')
 			self.commn_thread.start()
 			return True
 		except Exception as e:
@@ -317,12 +319,7 @@ class channel_MBRTU(Node):
 			self.get_logger().info(f"error: {e}") 
 			return False
 		
-	def destroy_node(self):
-		"""重写节点销毁方法，确保线程被正确停止"""
-		self.get_logger().info("正在停止电机控制线程...")
-		self._stop_event.set()      # 发送停止信号
-		self.comm_thread.join(timeout=2.0)  # 等待线程结束，最多等3秒防止卡死
-		super().destroy_node()
+
 
 	"""关闭端口"""
 	def close_port(self):
@@ -362,7 +359,7 @@ class channel_MBRTU(Node):
 					# self.get_logger().info(f'电机循环')
 					result_pos_l,result_rpm_l, moto_status_l_l,moto_status_r_r = self.read_slave_data(slave=self.slave1)
 					result_pos_r,result_rpm_r, moto_status_l_r,moto_status_r_r = self.read_slave_data(slave=self.slave2)
-					
+					# self.get_logger().info(f'循环读取中{result_pos_l}{result_pos_r}')
 					# 通过转速rpm计算线速度，并且添加到twist中，进行发布
 					# self.v_l_rt =  round(self.rpm_to_rad_per_sec(result_rpm_l),1)
 					# self.v_r_rt  =  round(self.rpm_to_rad_per_sec(result_rpm_r) * -1,1)
@@ -583,10 +580,24 @@ class channel_MBRTU(Node):
 		self.ser.write_register(address=0xFE, value=38912, device_id=self.slave1)
 		self.ser.write_register(address=0xFE, value=38912, device_id=self.slave2)
 
+
+	def destroy_node(self):
+		"""重写节点销毁方法，确保线程被正确停止"""
+		self.get_logger().info("正在停止电机控制线程...")
+		self.enable_motor(False)
+		self._stop_event.set()      # 发送停止信号
+		self.close_port()
+		super().destroy_node()
+
 def main(args=None):
 	# 创建串口线程 (替换为实际串口名)
 	rclpy.init(args=args)                                   # ROS2 Python接口初始化
-	ser_thread = channel_MBRTU(name="df_motor_status",port='/dev/ttyUSB0')              # 创建ROS2节点对象并进行初始化
-	rclpy.spin(ser_thread)                                        # 循环等待ROS2退出
-	ser_thread.destroy_node()                                     # 销毁节点对象
-	rclpy.shutdown()                                        # 关闭ROS2 Python接口
+	ser_thread = channel_MBRTU()              # 创建ROS2节点对象并进行初始化
+	try:
+		rclpy.spin(ser_thread)
+	except KeyboardInterrupt:
+		pass
+	finally:
+		ser_thread.destroy_node()
+		rclpy.shutdown()
+

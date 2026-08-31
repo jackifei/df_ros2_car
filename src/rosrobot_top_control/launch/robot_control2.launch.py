@@ -54,16 +54,16 @@ def generate_launch_description():
 		# ============================================================
 		# 2. 启动IMU
 		# ============================================================
-		pkg_share = get_package_share_directory('imu_ros2_device')
-		config_path_imu = os.path.join(pkg_share, 'config', 'imu_filter_param.yaml')
-
-		nodes.append(Node(
-			package='imu_ros2_device',
-			executable='ybimu_driver',
-			name='ybimu_driver',
-			output='screen',
-			parameters=[config_path_imu]
-		))
+		# pkg_share = get_package_share_directory('imu_ros2_device')
+		# config_path_imu = os.path.join(pkg_share, 'config', 'imu_filter_param.yaml')
+		#
+		# nodes.append(Node(
+		# 	package='imu_ros2_device',
+		# 	executable='ybimu_driver',
+		# 	name='ybimu_driver',
+		# 	output='screen',
+		# 	parameters=[config_path_imu]
+		# ))
 		# ============================================================
 		# 7. lidar 启动雷达扫描 —— 可视化
 		#    获取scan数据：
