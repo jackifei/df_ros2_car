@@ -31,7 +31,7 @@ class JoyToServoNode(Node):
 		self.declare_parameter('straight_steering_threshold', 0.1)  # 转向角在 [-0.1, 0.1] rad 内判定为直行并启用 PID
 		self.declare_parameter('heading_settle_time', 0.2)  # 转弯后重新直行时，等待航向稳定再锁定参考航向的时间(s)
 		self.declare_parameter('imu_timeout', 0.5)  # 超过该时间没有收到 IMU 消息则判定 IMU 故障(s)
-		self.declare_parameter('yaw_jump_max_deg', 30.0)  # 单帧 yaw 跳变超过该角度则视为异常数据(°)
+		self.declare_parameter('yaw_jump_max_deg', 10.0)  # 单帧 yaw 跳变超过该角度则视为异常数据(°)
 		self.declare_parameter('imu_invalid_frames_before_fault', 10)  # 连续异常帧数达到该值后判定 IMU 故障
 		self.declare_parameter('imu_recover_time', 1.0)  # IMU 连续正常多长时间后才允许恢复 PID(s)
 		self.declare_parameter('max_yaw_error_deg', 15.0)  # 直行偏航误差超过该值时关闭 PID，使用原始转向(°)
@@ -113,22 +113,23 @@ class JoyToServoNode(Node):
 		"""收到前轮转向指令时自动调用"""
 		# 上游发布的是弧度，按原有协议转换为发送给舵机的角度值。
 		angle = (((msg.data[0] + msg.data[1]) / 2) / math.pi) * 180
-
+		corr_rad = (msg.data[0] + msg.data[1]) / 2
 		# 只在转向角位于 ±0.1 rad 内（直行）时使用 IMU 航向 PID 修正；
 		# 转弯时 _compute_heading_correction 会返回 0，不使用 PID 数据。
-		# heading_correction = self._compute_heading_correction(msg.data)
-		# self.get_logger().info(f"{heading_correction}")
+		heading_correction = self._compute_heading_correction(corr_rad) * 2
+		self.get_logger().info(f"🚗 原始角度：{angle} PID差值: {heading_correction}")
+		# self.get_logger().info(f'🚗 航向角：{yaw}')
 		# 最终发送角度 = 原始转向角 + 航向保持修正量
-		# angle = base_angle + heading_correction
+		target_angle = angle + heading_correction
 
 		# 限幅 0~180
 		# angle = max(1.0, min(180.0, angle)) # 取消限制幅度，通过前序话题进行限制
 		# 格式化发送：保留一位小数 + 换行符
-		cmd = f"{angle:.1f}\n"
+		cmd = f"{target_angle:.1f}\n"
 		try:
 			self.ser.write(cmd.encode())
 			# self.get_logger().info(f'📤 发送: {cmd.strip()}')
-			self.motor_status_data.data = angle
+			self.motor_status_data.data = target_angle
 			self.pub.publish(self.motor_status_data)
 		except serial.SerialTimeoutException:
 			self.get_logger().info('⏳ 串口写入超时')
@@ -142,9 +143,6 @@ class JoyToServoNode(Node):
         只保存“最新 yaw”，不在这里直接写串口；
         真正的控制输出仍然由 dir_callback 按转向指令频率统一发送。
         """
-
-		pass
-		return
 		now = self.get_clock().now()
 		yaw = self._yaw_from_quaternion(
 			msg.orientation.x,
@@ -164,7 +162,7 @@ class JoyToServoNode(Node):
 			if abs(math.degrees(yaw_delta)) > self._yaw_jump_max_deg:
 				self._handle_invalid_imu(now)
 				return
-
+		# self.get_logger().info(f'🚗 航向角：{yaw}')
 		# 数据有效：更新当前 yaw，并推进故障恢复判断。
 		self._accept_valid_imu(now, yaw)
 

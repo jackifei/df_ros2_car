@@ -24,7 +24,7 @@ class ybimu_driver(Node):
 
 
     def init_topic(self):
-        port_list = ["/dev/myimu"]
+        port_list = ["/dev/ttyUSB1"]
         for port in port_list:
             try:
                 self.robot = YbImuSerial(port)
@@ -33,7 +33,7 @@ class ybimu_driver(Node):
             except:
                 pass
         if self.robot is None:
-            self.get_logger().error("---------Fail To Open Ybimu Serial------------")
+            self.get_logger().error(f"---------Fail To Open Ybimu Serial-  {port}---------")
             return
         self.robot.create_receive_threading()
 
