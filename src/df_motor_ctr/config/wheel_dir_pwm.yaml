@@ -8,20 +8,20 @@
     # ---- IMU 订阅与航向 PID 参数 ----
     imu_topic: '/imu/data_raw'
     heading_control_enabled: true
-    straight_steering_threshold: 0.1  # 转向角在 [-0.1, 0.1] rad 内判定为直行并启用 PID
-    heading_settle_time: 0.5  # 转弯后重新直行时，等待航向稳定再锁定参考航向的时间(s)
+    straight_steering_threshold: 0.01  # 转向角在 [-0.1, 0.1] rad 内判定为直行并启用 PID
+    heading_settle_time: 1.5  # 转弯后重新直行时，等待航向稳定再锁定参考航向的时间(s)
 
     # ---- IMU 故障检测与恢复参数 ----
     imu_timeout: 0.5 # 超过该时间没有收到 IMU 消息则判定 IMU 故障(s)
-    yaw_jump_max_deg: 10.0 # 单帧 yaw 跳变超过该角度则视为异常数据(°)
+    yaw_jump_max_deg: 15.0 # 单帧 yaw 跳变超过该角度则视为异常数据(°)
     imu_invalid_frames_before_fault: 10  # 连续异常帧数达到该值后判定 IMU 故障
     imu_recover_time: 1.0 # IMU 连续正常多长时间后才允许恢复 PID(s)
-    max_yaw_error_deg: 6.0 # 直行偏航误差超过该值时关闭 PID，使用原始转向(°)
+    max_yaw_error_deg: 10.0 # 直行偏航误差超过该值时关闭 PID，使用原始转向(°)
 
     # ---- PID 参数 ----
-    heading_kp: 0.6  # PID 比例系数：1°偏航 -> 0.6°转向修正
-    heading_ki: 0.0  # PID 积分系数，通常先设 0，有稳态误差再调
+    heading_kp: 0.8  # PID 比例系数：1°偏航 -> 0.6°转向修正
+    heading_ki: 0.001  # PID 积分系数，通常先设 0，有稳态误差再调
     heading_kd: 0.0   # PID 微分系数，通常先设 0
     heading_correction_sign: -1.0  # 修正方向；方向反了改成 +1.0
-    heading_correction_limit_deg: 5.0  # 单次航向修正最大角度(°)
+    heading_correction_limit_deg: 8.0  # 单次航向修正最大角度(°)
     heading_integral_limit_deg: 5.0  # 积分项限幅，防止积分饱和

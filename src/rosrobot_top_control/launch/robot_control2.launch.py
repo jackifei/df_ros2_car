@@ -181,21 +181,21 @@ def generate_launch_description():
 		))
 
 		# # 5.2 EKF 节点，参数文件见 robot_localization_config/config/ekf_params.yaml
-		# config_path_ekf = os.path.join(
-		# 	get_package_share_directory('robot_localization_config'),
-		# 	'config',
-		# 	'ekf_params.yaml'
-		# )
-		# nodes.append(Node(
-		# 	package='robot_localization',
-		# 	executable='ekf_node',
-		# 	name='ekf_filter_node',
-		# 	output='screen',
-		# 	parameters=[
-		# 		config_path_ekf,
-		# 		{'use_sim_time': False},
-		# 	],
-		# ))
+		config_path_ekf = os.path.join(
+			get_package_share_directory('robot_localization_config'),
+			'config',
+			'ekf_params.yaml'
+		)
+		nodes.append(Node(
+			package='robot_localization',
+			executable='ekf_node',
+			name='ekf_filter_node',
+			output='screen',
+			parameters=[
+				config_path_ekf,
+				{'use_sim_time': False},
+			],
+		))
 
 
 		# ============================================================

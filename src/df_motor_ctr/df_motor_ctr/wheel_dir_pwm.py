@@ -87,7 +87,7 @@ class JoyToServoNode(Node):
 			self.imu_callback,
 			10
 		)
-
+		self.yaw_deg = 0.0
 		# 创建前轮转向角度的位置发布话题
 		self.pub = self.create_publisher(Float64, '/df_dir_rt', 10)
 		self.motor_status_data = Float64()
@@ -96,7 +96,7 @@ class JoyToServoNode(Node):
 		# ---- IMU / 航向 PID 运行状态 ----
 		self._imu_received = False  # 是否已经收到第一帧 IMU 数据
 		self._current_yaw = None  # 当前有效 IMU yaw，单位 rad
-		self._heading_reference = None  # 直行开始时锁定的参考航向，单位 rad
+		self._heading_reference = 0.0  # 直行开始时锁定的参考航向，单位 rad
 		self._heading_control_active = False  # 当前是否正在执行直线航向保持
 		self._straight_start_time = None  # 转弯后重新进入直行的稳定计时起点
 		self._last_imu_time = None  # 最后一次收到 IMU 消息的 ROS 时间
@@ -106,9 +106,57 @@ class JoyToServoNode(Node):
 		self._last_control_time = None  # 上一次 PID 计算时间
 		self._last_yaw_error = 0.0  # 上一次偏航误差，用于微分项
 		self._yaw_integral = 0.0  # 偏航误差积分，单位 °·s
+		self.yaw_deg_360 = 0.0
+
+		# 航向角滤波参数
+		self.declare_parameter('yaw_median_window', 9)      # 中值滤波窗口大小（奇数更好）
+		self.declare_parameter('yaw_lowpass_alpha', 0.2)   # 低通滤波系数 0~1，越小越平滑但延迟越大
+
+		self._yaw_median_window = self.get_parameter('yaw_median_window').value
+		self._yaw_lowpass_alpha = self.get_parameter('yaw_lowpass_alpha').value
+
+		# 滤波状态
+		from collections import deque
+		self._yaw_median_queue = deque(maxlen=self._yaw_median_window)  # 存储原始 yaw 值
+		self._yaw_lowpass_prev = None                                    # 上一次低通输出
 
 		self.get_logger().info('🎮 等待手柄数据...')
 
+
+	def _filter_yaw(self, yaw_raw: float) -> float:
+		"""
+		对原始 yaw 进行两级滤波：先中值滤波，再一阶低通滤波。
+		输入输出均为弧度，且保证结果在 [-pi, pi] 区间。
+		"""
+		# ---------- 第一级：中值滤波 ----------
+		self._yaw_median_queue.append(yaw_raw)
+		if len(self._yaw_median_queue) < self._yaw_median_window:
+			# 窗口未满时直接使用原始值（或可返回低通结果，这里简单处理）
+			median_yaw = yaw_raw
+		else:
+			# 取出窗口内所有角度
+			angles = list(self._yaw_median_queue)
+			# 以第一个角度为基准，将所有角度转换到差值域，避免 ±π 边界问题
+			base = angles[0]
+			diffs = [self._normalize_angle(a - base) for a in angles]
+			diffs.sort()
+			# 取中值
+			mid_index = len(diffs) // 2
+			median_diff = diffs[mid_index]
+			# 还原为绝对角度，并归一化
+			median_yaw = self._normalize_angle(base + median_diff)
+
+		# ---------- 第二级：一阶低通滤波 ----------
+		if self._yaw_lowpass_prev is None:
+			self._yaw_lowpass_prev = median_yaw
+			return median_yaw
+
+		# 计算与上次低通输出的最小角度差
+		delta = self._normalize_angle(median_yaw - self._yaw_lowpass_prev)
+		self._yaw_lowpass_prev += self._yaw_lowpass_alpha * delta
+		# 确保最终结果在 [-pi, pi]
+		self._yaw_lowpass_prev = self._normalize_angle(self._yaw_lowpass_prev)
+		return self._yaw_lowpass_prev
 	def dir_callback(self, msg: Float64):
 		"""收到前轮转向指令时自动调用"""
 		# 上游发布的是弧度，按原有协议转换为发送给舵机的角度值。
@@ -117,11 +165,18 @@ class JoyToServoNode(Node):
 		# 只在转向角位于 ±0.1 rad 内（直行）时使用 IMU 航向 PID 修正；
 		# 转弯时 _compute_heading_correction 会返回 0，不使用 PID 数据。
 		heading_correction = self._compute_heading_correction(corr_rad) * 2
-		self.get_logger().info(f"🚗 原始角度：{angle} PID差值: {heading_correction}")
+		
 		# self.get_logger().info(f'🚗 航向角：{yaw}')
 		# 最终发送角度 = 原始转向角 + 航向保持修正量
 		target_angle = angle + heading_correction
-
+		if self._heading_reference is not None:
+			heading_deg_ = math.degrees(self._heading_reference)
+		else:
+			heading_deg_ = 0.0  # 或 0.0
+		heading_deg = round(heading_deg_,3)
+		# 实时航向需要对正负号进行修正
+		rt_deg = round(self.yaw_deg,3)
+		self.get_logger().info(f"🚗 计算{self.yaw_deg_360} 定位航向{heading_deg}实时航向 {rt_deg} 命令：{angle} 转向角度：{angle} PID: {heading_correction}")
 		# 限幅 0~180
 		# angle = max(1.0, min(180.0, angle)) # 取消限制幅度，通过前序话题进行限制
 		# 格式化发送：保留一位小数 + 换行符
@@ -129,7 +184,8 @@ class JoyToServoNode(Node):
 		try:
 			self.ser.write(cmd.encode())
 			# self.get_logger().info(f'📤 发送: {cmd.strip()}')
-			self.motor_status_data.data = target_angle
+			# 分别的实时转向角度是没有PID补偿的角度
+			self.motor_status_data.data = angle
 			self.pub.publish(self.motor_status_data)
 		except serial.SerialTimeoutException:
 			self.get_logger().info('⏳ 串口写入超时')
@@ -164,7 +220,11 @@ class JoyToServoNode(Node):
 				return
 		# self.get_logger().info(f'🚗 航向角：{yaw}')
 		# 数据有效：更新当前 yaw，并推进故障恢复判断。
-		self._accept_valid_imu(now, yaw)
+		# 原始 yaw 有效，先进行滤波
+		yaw_filtered = self._filter_yaw(yaw)
+		self.yaw_deg = math.degrees(yaw_filtered)
+		self.yaw_deg_360 = round((self.yaw_deg + 360.0) % 360.0,3)   # <-- 新增行
+		self._accept_valid_imu(now, yaw_filtered)
 
 	@staticmethod
 	def _yaw_from_quaternion(x: float, y: float, z: float, w: float):
@@ -236,7 +296,7 @@ class JoyToServoNode(Node):
 	def _accept_valid_imu(self, now, yaw: float):
 		"""
         处理一帧有效 IMU 数据，并判断是否满足故障恢复条件。
-
+		计算使用的弧度
         IMU 故障后不能立刻重新启用 PID，需要连续正常一段时间，
         确认数据稳定后再允许航向保持重新锁定参考航向。
         """
@@ -367,7 +427,7 @@ class JoyToServoNode(Node):
 
 		# 限制单次修正量，避免异常时舵机突然大角度动作。
 		limit = self._heading_correction_limit_deg
-		correction = max(-limit, min(limit, correction))
+		correction = round(max(-limit, min(limit, correction)),1)
 
 		self._last_control_time = now
 
