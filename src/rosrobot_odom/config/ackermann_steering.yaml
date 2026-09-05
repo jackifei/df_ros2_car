@@ -25,7 +25,7 @@ ackermann_steering_controller:
     # ----- 里程计设定（全部嵌套在 odometry 命名空间内）-----
     odom_frame_id: "odom"                        # 里程计坐标系的 frame_id
     base_frame_id: "base_link"              # 机器人底座的 frame_id
-    enable_odom_tf: true                  # 是否发布 odom -> base_link 的 tf 变换
+    enable_odom_tf: false                  # 是否发布 odom -> base_link 的 tf 变换
 
     # ===== 底盘机械参数（务必按实车修改）=====
     wheelbase: 0.36          # 轴距：前轮转向轴 → 后轮驱动轴（单位：米）

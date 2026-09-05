@@ -54,9 +54,6 @@ def generate_launch_description():
 		# ============================================================
 		# 2. 启动IMU
 		# ============================================================
-		# pkg_share = get_package_share_directory('imu_ros2_device')
-		# config_path_imu = os.path.join(pkg_share, 'config', 'imu_filter_param.yaml')
-
 		nodes.append(Node(
 			package='imu_ros2_device',
 			executable='ybimu_driver',
@@ -65,8 +62,7 @@ def generate_launch_description():
 			# parameters=[config_path_imu]
 		))
 		# ============================================================
-		# 7. lidar 启动雷达扫描 —— 可视化
-		#    获取scan数据：
+		# 3. lidar 启动雷达扫描 —— 可视化
 		# ============================================================
 		lidar_config_path = os.path.join(
 			get_package_share_directory('lidar_pkg'),
@@ -81,7 +77,7 @@ def generate_launch_description():
 			parameters=[lidar_config_path]
 		))
 		# ============================================================
-		# 8. 添加Z轴180度旋转的静态坐标变换
+		# 4. 添加Z轴180度旋转的静态坐标变换,我的雷达是反装的
 		# ============================================================
 		nodes.append(Node(
 			package='tf2_ros',
@@ -99,15 +95,16 @@ def generate_launch_description():
 				'--child-frame-id', 'lidar_Link_sub'  # 变换后的id，然后雷达的发布节点需要绑定此sub节点
 			]
 		))
-
+		# ============================================================
+		# 5. 启动控制管理器 controller_manager —— ros2_control 核心节点
+		# ============================================================
 		controller_yaml_default = PathJoinSubstitution([
 			FindPackageShare('rosrobot_odom'),
 			'config',
 			'ackermann_steering.yaml',
 		])
 		controller_yaml = LaunchConfiguration('controller_yaml', default=controller_yaml_default)
-
-		# 2. 控制管理器 controller_manager —— ros2_control 核心节点
+		# 5.1 启动控制管理器 controller_manager —— ros2_control 核心节点
 		nodes.append(Node(
 			package='controller_manager',
 			executable='ros2_control_node',
@@ -123,7 +120,7 @@ def generate_launch_description():
 			],
 		))
 
-		# 3. 关节状态广播起，发布关节状态。joint_state_broadcaster 的 spawner
+		# 5.2. 关节状态广播起，发布关节状态。joint_state_broadcaster 的 spawner
 		nodes.append(Node(
 			package='controller_manager',
 			executable='spawner',
@@ -135,7 +132,7 @@ def generate_launch_description():
 			output='screen',
 		))
 
-		# 4. ackermann_steering_controller 的 spawner
+		# 5.3. ackermann_steering_controller 的 spawner
 		# 阿克曼转向控制器的生成器
 		nodes.append(Node(
 			package='controller_manager',
@@ -152,37 +149,16 @@ def generate_launch_description():
 		))
 
 		# ============================================================
-		# 5. EKF 定位融合 —— robot_localization 的 ekf_node
+		# 6. EKF 定位融合 —— rosrobot_localization 的 ekf_node
 		#    融合 /ackermann_steering_controller/odometry 与 /imu/data，
 		#    输出 /odometry/filtered，并发布 odom -> base_link 的 TF。
 		#    注意：
 		#       - 阿克曼控制器需已发布 /ackermann_steering_controller/odometry；
 		#       - IMU 驱动需已发布 /imu/data，frame_id 为 imu_link。
 		# ============================================================
-
-		# 5.1 base_link -> imu_link 静态 TF
-		#     robot_localization 需要把 IMU 数据从 imu_link 变换到 base_link。
-		#     如果 IMU 实际安装位置/朝向有偏移，请修改 --x/--y/--z/--roll/--pitch/--yaw。
-		nodes.append(Node(
-			package='tf2_ros',
-			executable='static_transform_publisher',
-			name='base_link_to_imu_link',
-			output='screen',
-			arguments=[
-				'--x', '0',
-				'--y', '0',
-				'--z', '0',
-				'--roll', '0',
-				'--pitch', '0',
-				'--yaw', '0',
-				'--frame-id', 'base_link',
-				'--child-frame-id', 'imu_link',
-			],
-		))
-
-		# # 5.2 EKF 节点，参数文件见 robot_localization_config/config/ekf_params.yaml
+		# # 5.2 EKF 节点，参数文件见 rosrobot_localization/config/ekf_params.yaml
 		config_path_ekf = os.path.join(
-			get_package_share_directory('robot_localization_config'),
+			get_package_share_directory('rosrobot_localization'),
 			'config',
 			'ekf_params.yaml'
 		)
@@ -199,7 +175,7 @@ def generate_launch_description():
 
 
 		# ============================================================
-		# 1. launch 启动   启动twist选择器，并且启动手柄节点，
+		# 7. 启动twist选择分配器，并且启动手柄节点，
 		# ============================================================
 		existing_launch_path = os.path.join(
 			FindPackageShare(package='rosrobot_top_control').find('rosrobot_top_control'),
@@ -209,21 +185,10 @@ def generate_launch_description():
 		include_twist_mux = IncludeLaunchDescription(PythonLaunchDescriptionSource(existing_launch_path))
 
 		nodes.append(include_twist_mux)
- 		
 
 
 		# ============================================================
-		# 3. 启动阿克曼电子差速器，用来计算后轮差速及前轮转向
-		# ============================================================
-		# print(f"启动电子差速器")
-		# nodes.append(Node(
-		# 	package='rosrobot_odom',
-		# 	executable='joystick_bridge_node',
-		# 	output='screen'
-		# ))
-
-		# ============================================================
-		# 4. 启动电机驱动计算节点
+		# 8. 启动电机驱动计算节点
 		# ============================================================
 		print(f"启动后轮电机驱动")
 		config_path_motor = os.path.join(
@@ -238,7 +203,7 @@ def generate_launch_description():
 			parameters=[config_path_motor]
 		))
 		# ============================================================
-		# 5. 启动前轮转向驱动
+		# 9. 启动前轮转向驱动
 		# ============================================================
 		print(f"启动前轮转向驱动")
 		config_path_dir = os.path.join(
@@ -253,10 +218,8 @@ def generate_launch_description():
 			parameters=[config_path_dir]
 		))
 
-
-
 		# ============================================================
-		# 8. RViz2 —— 可视化
+		# 10. RViz2 —— 可视化
 		#    使用 odom_display.rviz 配置：
 		#      Fixed Frame: odom（里程计坐标系固定，小车在其中移动）
 		#      显示: Grid + TF + RobotModel + Odometry（绿色轨迹线）
@@ -280,17 +243,18 @@ def generate_launch_description():
 		))
 
 		# ============================================================
-		# 1. launch 启动  服务器桥接， 9090端口
+		# 11. launch 启动  服务器桥接， 9090端口
 		# ============================================================
-		server_bridge_launch_path = os.path.join(
-			FindPackageShare(package='rosrobot_top_control').find('rosrobot_top_control'),
-			'launch', 
-			'server_bridge.launch.py'
-		)
-		print(f"启动 服务器桥接 文件")
-		server_bridge = IncludeLaunchDescription(PythonLaunchDescriptionSource(server_bridge_launch_path))
-		
-		nodes.append(server_bridge)
+
+		# server_bridge_launch_path = os.path.join(
+		# 	FindPackageShare(package='rosrobot_top_control').find('rosrobot_top_control'),
+		# 	'launch',
+		# 	'server_bridge.launch.py'
+		# )
+		# print(f"启动 服务器桥接 文件")
+		# server_bridge = IncludeLaunchDescription(PythonLaunchDescriptionSource(server_bridge_launch_path))
+		#
+		# nodes.append(server_bridge)
 		
 
 		# ============================================================

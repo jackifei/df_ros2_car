@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 import os
 from glob import glob
 
-package_name = 'robot_localization_config'
+package_name = 'rosrobot_localization'
 
 setup(
     name=package_name,
@@ -21,7 +21,7 @@ setup(
     zip_safe=True,
     maintainer='user',
     maintainer_email='793709242@qq.com',
-    description='EKF robot_localization config for Ackermann robot at 50Hz',
+    description='EKF rosrobot_localization config for Ackermann robot at 50Hz',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={},

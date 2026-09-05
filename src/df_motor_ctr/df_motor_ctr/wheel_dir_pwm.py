@@ -123,6 +123,7 @@ class JoyToServoNode(Node):
 		self.get_logger().info('🎮 等待手柄数据...')
 
 
+	"""航向角滤波器"""
 	def _filter_yaw(self, yaw_raw: float) -> float:
 		"""
 		对原始 yaw 进行两级滤波：先中值滤波，再一阶低通滤波。
@@ -157,6 +158,7 @@ class JoyToServoNode(Node):
 		# 确保最终结果在 [-pi, pi]
 		self._yaw_lowpass_prev = self._normalize_angle(self._yaw_lowpass_prev)
 		return self._yaw_lowpass_prev
+
 	def dir_callback(self, msg: Float64):
 		"""收到前轮转向指令时自动调用"""
 		# 上游发布的是弧度，按原有协议转换为发送给舵机的角度值。
@@ -176,7 +178,7 @@ class JoyToServoNode(Node):
 		heading_deg = round(heading_deg_,3)
 		# 实时航向需要对正负号进行修正
 		rt_deg = round(self.yaw_deg,3)
-		self.get_logger().info(f"🚗 计算{self.yaw_deg_360} 定位航向{heading_deg}实时航向 {rt_deg} 命令：{angle} 转向角度：{angle} PID: {heading_correction}")
+		# self.get_logger().info(f"🚗 计算{self.yaw_deg_360} 定位航向{heading_deg}实时航向 {rt_deg} 命令：{angle} 转向角度：{angle} PID: {heading_correction}")
 		# 限幅 0~180
 		# angle = max(1.0, min(180.0, angle)) # 取消限制幅度，通过前序话题进行限制
 		# 格式化发送：保留一位小数 + 换行符
@@ -226,6 +228,8 @@ class JoyToServoNode(Node):
 		self.yaw_deg_360 = round((self.yaw_deg + 360.0) % 360.0,3)   # <-- 新增行
 		self._accept_valid_imu(now, yaw_filtered)
 
+
+	"""四元数计算航向角"""
 	@staticmethod
 	def _yaw_from_quaternion(x: float, y: float, z: float, w: float):
 		"""
@@ -258,31 +262,30 @@ class JoyToServoNode(Node):
 			angle += 2.0 * math.pi
 		return angle - math.pi
 
+	"""关闭航向保持"""
 	def _disable_heading_control(self):
 		"""
         关闭航向保持，并清空参考航向、直行计时和 PID 历史状态。
-
         此时 dir_callback 会继续发送原始手柄转向角，只是不再叠加 IMU 修正。
         """
 		self._heading_control_active = False
 		self._heading_reference = None
 		self._straight_start_time = None
-		self._reset_heading_pid()
+		self._reset_heading_pid()  # 清除PID状态以及偏航角
 
+	# IMU故障处理部分
 	def _mark_imu_fault(self):
 		"""进入 IMU 故障状态。故障期间航向 PID 完全不输出，只保留原始转向。"""
 		if self._imu_fault:
 			return
-
 		self._imu_fault = True
 		self._imu_recover_start_time = None
 		self._disable_heading_control()
 		self.get_logger().warn('检测到 IMU 异常，已关闭航向 PID，仅使用原始转向指令')
-
+	# 处理一帧故障的IMU数据
 	def _handle_invalid_imu(self, now):
 		"""
         处理一帧异常 IMU 数据。
-
         单帧异常不会立刻判定为故障，但会累计连续异常帧数；
         达到阈值后才进入 IMU 故障状态，避免偶发毛刺导致 PID 频繁开关。
         """
@@ -292,7 +295,7 @@ class JoyToServoNode(Node):
 
 		if self._imu_invalid_count >= self._imu_invalid_frames_before_fault:
 			self._mark_imu_fault()
-
+	# 处理一帧有效的IMU数据
 	def _accept_valid_imu(self, now, yaw: float):
 		"""
         处理一帧有效 IMU 数据，并判断是否满足故障恢复条件。
@@ -324,6 +327,8 @@ class JoyToServoNode(Node):
 		self._last_yaw_error = 0.0
 		self._yaw_integral = 0.0
 
+
+	"""计算前轮航向修正量"""
 	def _compute_heading_correction(self, steering_rad: float) -> float:
 		"""
         计算直线行驶时的前轮航向修正量。
@@ -335,7 +340,7 @@ class JoyToServoNode(Node):
             航向修正量，单位 °。非直行或 IMU 不可用时返回 0.0。
         """
 		now = self.get_clock().now()
-
+		# -----------------------------故障及异常处理-------------------------
 		# 总开关关闭：不做任何修正，只保留原始转向。
 		if not self._heading_control_enabled:
 			self._disable_heading_control()
@@ -358,8 +363,10 @@ class JoyToServoNode(Node):
 				self._mark_imu_fault()
 				return 0.0
 
+		# -----------------------------PID计算-------------------------
+
 		# 直线判断：转向角在 [-straight_steering_threshold, +straight_steering_threshold]
-		# 内时才启用 PID，默认阈值 0.1 rad；超出该范围视为转弯。
+		# 内时才启用 PID，默认阈值 0.1 rad；超出该范围视为转弯。0.1弧度大概是5.8度角
 		is_straight = abs(steering_rad) <= self._straight_steering_threshold
 
 		# 转弯时：不启用 PID，也不使用之前积累的 PID 数据。
@@ -393,8 +400,8 @@ class JoyToServoNode(Node):
 		dt = (now - self._last_control_time).nanoseconds / 1e9
 		if dt <= 0.0:
 			return 0.0
-		if dt > 0.5:
-			dt = 0.5
+		if dt > 0.3:
+			dt = 0.3
 
 		# 相对偏航误差，统一到 [-180°, 180°]。
 		yaw_error_rad = self._normalize_angle(self._current_yaw - self._heading_reference)

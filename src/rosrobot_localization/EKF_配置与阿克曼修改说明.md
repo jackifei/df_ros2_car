@@ -219,12 +219,12 @@ nodes.append(Node(
 
 # 5.2 EKF 节点
 config_path_ekf = os.path.join(
-    get_package_share_directory('robot_localization_config'),
+    get_package_share_directory('rosrobot_localization'),
     'config',
     'ekf_params.yaml'
 )
 nodes.append(Node(
-    package='robot_localization',
+    package='rosrobot_localization',
     executable='ekf_node',
     name='ekf_filter_node',
     output='screen',
@@ -243,7 +243,7 @@ nodes.append(Node(
 也可以单独启动 EKF：
 
 ```bash
-ros2 launch robot_localization_config ekf_localization.launch.py
+ros2 launch rosrobot_localization ekf_localization.launch.py
 ```
 
 ---

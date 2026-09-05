@@ -8,8 +8,8 @@
     # ---- IMU 订阅与航向 PID 参数 ----
     imu_topic: '/imu/data_raw'
     heading_control_enabled: true
-    straight_steering_threshold: 0.01  # 转向角在 [-0.1, 0.1] rad 内判定为直行并启用 PID
-    heading_settle_time: 1.5  # 转弯后重新直行时，等待航向稳定再锁定参考航向的时间(s)
+    straight_steering_threshold: 0.03  # 0.1弧度大概是5.8度角 转向角在 [-0.1, 0.1] rad 内判定为直行并启用 PID
+    heading_settle_time: 1.2  # 转弯后重新直行时，等待航向稳定再锁定参考航向的时间(s)
 
     # ---- IMU 故障检测与恢复参数 ----
     imu_timeout: 0.5 # 超过该时间没有收到 IMU 消息则判定 IMU 故障(s)

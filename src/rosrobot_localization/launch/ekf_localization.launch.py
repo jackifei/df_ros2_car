@@ -3,8 +3,8 @@
 
 启动内容：
   1. base_link -> imu_link 的静态 TF
-     （robot_localization 需要把 IMU 数据变换到 base_link）
-  2. robot_localization 的 ekf_node
+     （rosrobot_localization 需要把 IMU 数据变换到 base_link）
+  2. rosrobot_localization 的 ekf_node
 
 注意：
   - 阿克曼控制器需要已经在运行，并发布
@@ -23,8 +23,8 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
-    # 本配置包名（注意：不是提供 ekf_node 可执行文件的 robot_localization 包）
-    pkg_share = get_package_share_directory('robot_localization_config')
+    # 本配置包名（注意：不是提供 ekf_node 可执行文件的 rosrobot_localization 包）
+    pkg_share = get_package_share_directory('rosrobot_localization')
     config_file = os.path.join(pkg_share, 'config', 'ekf_params.yaml')
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
@@ -47,7 +47,7 @@ def generate_launch_description():
     # EKF 节点
     # ---------------------------------------------------------------------
     ekf_node = Node(
-        package='robot_localization',
+        package='rosrobot_localization',
         executable='ekf_node',
         name='ekf_filter_node',
         output='screen',

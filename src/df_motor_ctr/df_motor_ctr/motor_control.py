@@ -243,8 +243,8 @@ class channel_MBRTU(Node):
 		
 		# self.r_speed = self.linear_velocity_to_rpm(msg.data[1])
 		# 速度反馈使用下发指令
-		self.v_l_rt = msg.data[1]
-		self.v_r_rt = msg.data[0]
+		# self.v_l_rt = msg.data[1]
+		# self.v_r_rt = msg.data[0]
 
 		self.l_speed = self.rad_per_sec_to_rpm(msg.data[1])
 		self.r_speed = self.rad_per_sec_to_rpm(msg.data[0])
@@ -361,8 +361,8 @@ class channel_MBRTU(Node):
 					result_pos_r,result_rpm_r, moto_status_l_r,moto_status_r_r = self.read_slave_data(slave=self.slave2)
 					# self.get_logger().info(f'循环读取中{result_pos_l}{result_pos_r}')
 					# 通过转速rpm计算线速度，并且添加到twist中，进行发布
-					# self.v_l_rt =  round(self.rpm_to_rad_per_sec(result_rpm_l),1)
-					# self.v_r_rt  =  round(self.rpm_to_rad_per_sec(result_rpm_r) * -1,1)
+					self.v_l_rt =  round(self.rpm_to_rad_per_sec(result_rpm_l),1)
+					self.v_r_rt  =  round(self.rpm_to_rad_per_sec(result_rpm_r) * -1,1)
 
 					# self.v_l_rt =  round(self.rpm_to_rad_per_sec(self.write_l_speed),1)
 					# self.v_r_rt  =  round(self.rpm_to_rad_per_sec(self.write_r_speed) * -1,1)
