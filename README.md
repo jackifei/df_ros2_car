@@ -1,4 +1,5 @@
 # 阿克曼小车  使用 ros control 阿克曼控制器版本
+# humble 版本
 
 > 日期：2026-08-19
 > ROS2 版本：Jazzy
