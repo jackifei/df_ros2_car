@@ -1,11 +1,10 @@
-# 阿克曼小车  使用 ros control 阿克曼控制器版本
-# humble 版本
+# 升级版阿克曼小车
+# ROS2 humble 版本 基于Ubuntu22.04
 
-> 日期：2026-08-19
-> ROS2 版本：Jazzy
-> 秦皇岛文视科技有限公司
-#官方链接，请一定参考官方链接参数项，各个版本ros 参数不同，以免踩坑
+> 构建项目日期：2026-09
+> 作者：邓飞
 > 
+
 'https://control.ros.org/jazzy/doc/ros2_controllers/steering_controllers_library/doc/userdoc.html#steering-controllers-library-userdoc'
 > 
 ---
