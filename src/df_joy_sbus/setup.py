@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'df_motor_ctr'
+package_name = 'df_joy_sbus'
 
 setup(
     name=package_name,
@@ -26,9 +26,9 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'get_topic_joy = df_motor_ctr.get_topic_joy:main',
-            'motor_ctr = df_motor_ctr.motor_control:main',   # 电机控制
-            'wheel_dir = df_motor_ctr.wheel_dir_pwm:main'    # 转向控制
+            'get_topic_joy = df_joy_sbus.get_topic_joy:main',
+            'motor_ctr = df_joy_sbus.motor_control:main',   # 电机控制
+            'wheel_dir = df_joy_sbus.wheel_dir_pwm:main'    # 转向控制
         ],
     },
 )

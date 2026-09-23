@@ -194,7 +194,7 @@ def generate_launch_description():
 		config_path_motor = os.path.join(
 			get_package_share_directory('df_motor_ctr'),
 			'config',
-			'motor_control.yaml'
+			'joy_config.yaml'
 		)
 		nodes.append(Node(
 			package='df_motor_ctr',
