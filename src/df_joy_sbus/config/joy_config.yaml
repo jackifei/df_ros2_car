@@ -1,6 +1,7 @@
-/motor_control:
+sbus_joy:
   ros__parameters:
-    port: '/dev/ttyUSB2'   # 使用左摇杆进行前后控制
-    wheel_track: 0.39   # 后轮轮距
-    wheel_diameter_m: 0.125
-
+    port: '/dev/ttyUSB1'   # SBUS 接收机对应的串口设备
+    baudrate: 100000       # SBUS 固定波特率
+    frame_id: 'joy'        # JoyValue 消息头中的 frame_id
+    poll_hz: 200.0         # 串口轮询频率
+    topic: 'joy_value'     # 发布话题名称

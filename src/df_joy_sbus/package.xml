@@ -2,20 +2,25 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>df_joy_sbus</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <version>0.1.0</version>
+  <description>SBUS joystick driver publishing raw channel values as df_joy_sbus/JoyValue.</description>
   <maintainer email="793709242@qq.com">dengfei</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
-  <depend>rclpy</depend>
-  <depend>pymodbus</depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
+  <build_depend>ament_cmake_python</build_depend>
+  <build_depend>rosidl_default_generators</build_depend>
+
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>python3-serial</exec_depend>
+
+  <depend>std_msgs</depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
