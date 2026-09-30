@@ -4,6 +4,7 @@
 > 构建项目日期：2026-10
 > 作者：邓飞
 > 
+> 
 介绍为jazzy版本
 'https://control.ros.org/jazzy/doc/ros2_controllers/steering_controllers_library/doc/userdoc.html#steering-controllers-library-userdoc'
 > 
@@ -15,7 +16,7 @@
 
 ---
 
-使用控制器一般需要注意的问题
+使用控制器一般需要注意
 参数 enable_odom_tf: true 确实会让控制器发布 TF
 但发布的目标话题是: /ackermann_steering_controller/tf_odometry
 （一个 tf2_msgs/msg/TFMessage 话题），而不是全局 /tf；
