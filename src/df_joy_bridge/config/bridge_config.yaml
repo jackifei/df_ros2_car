@@ -1,0 +1,17 @@
+joy_bridge:
+  ros__parameters:
+    input_topic: 'joy_value'
+    output_topic: 'joy_state'
+
+    # 映射区间：原始 SBUS 值 -> 微秒值
+    # 说明：中立点 raw=992 会映射到 us=1500
+    # 修改点：请按实际摇杆行程标定（把摇杆打到最小/最大，看驱动话题里的原始值）
+    raw_min: 192
+    raw_max: 1792
+    us_min: 1000
+    us_max: 2000
+
+    # 开关通道（从 1 开始的通道号）
+    switch_channels: [6, 7]
+    # 开关判定阈值（微秒）：mapped >= 阈值 -> 1，否则 -> 0
+    switch_threshold: 1500
