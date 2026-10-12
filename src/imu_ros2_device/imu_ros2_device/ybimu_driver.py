@@ -24,7 +24,7 @@ class ybimu_driver(Node):
 
 
     def init_topic(self):
-        port_list = ["/dev/ttyUSB1"]
+        port_list = ["/dev/ttyUSB2"]
         for port in port_list:
             try:
                 self.robot = YbImuSerial(port)

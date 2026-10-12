@@ -4,7 +4,7 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    pkg_name = 'lidar_pkg'
+    pkg_name = 'df_lidar_pkg'
 
     config_path = os.path.join(
         get_package_share_directory(pkg_name),

@@ -14,6 +14,7 @@
 #include <glog/logging.h>
 #include <optional>
 #include <atomic>
+#include <cstddef>
 
 #include <rclcpp/rclcpp.hpp>
 #include <libuvc/libuvc.h>

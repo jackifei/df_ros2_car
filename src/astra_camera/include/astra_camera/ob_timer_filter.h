@@ -12,6 +12,7 @@
 
 #pragma once
 #include <deque>
+#include <cstddef>
 
 #include <rclcpp/rclcpp.hpp>
 

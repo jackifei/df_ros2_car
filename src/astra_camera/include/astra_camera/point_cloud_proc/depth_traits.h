@@ -35,6 +35,7 @@
 #include <limits>
 #include <cmath>
 #include <vector>
+#include <cstdint>
 
 namespace astra_camera {
 
