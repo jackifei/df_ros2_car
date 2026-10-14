@@ -11,7 +11,10 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (f'share/{package_name}/config', ['config/joy_config.yaml']),
-        (f'share/{package_name}/config', ['config/wheel_dir_pwm.yaml'])
+        (f'share/{package_name}/config', ['config/wheel_dir_pwm.yaml']),
+        (f'share/{package_name}/launch', ['launch/df_joy_control.launch.py']),
+        (f'share/{package_name}/launch', ['launch/front_steering.launch.py']),
+        (f'share/{package_name}/launch', ['launch/rear_drive.launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
