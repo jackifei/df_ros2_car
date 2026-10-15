@@ -33,8 +33,52 @@ class channel_MBRTU(Node):
 	"""MB线程控制器 """
 
 	def __init__(self):
-		super().__init__("df_motor_status")
+		super().__init__("df_front_steering")
 
+
+		# ---- 声明可配置参数 ----
+		self.declare_parameter('port', '/dev/ttyUSB0')
+		port = self.get_parameter('port').value
+		# print(f"转向端口是：{port}")
+		baudrate = self.get_parameter('baudrate').value
+		timeout = self.get_parameter('timeout').value
+
+		# ---- 声明 IMU 航向 PID 相关参数 ----
+		# 这些参数可通过 launch/yaml 或命令行覆盖，方便实车调试时调整。
+		self.declare_parameter('imu_topic', '/imu/data_raw')  # 订阅哪个 IMU 话题
+		self.declare_parameter('heading_control_enabled', True)  # 航向保持总开关
+		self.declare_parameter('straight_steering_threshold', 0.1)  # 转向角在 [-0.1, 0.1] rad 内判定为直行并启用 PID
+		self.declare_parameter('heading_settle_time', 0.2)  # 转弯后重新直行时，等待航向稳定再锁定参考航向的时间(s)
+		self.declare_parameter('imu_timeout', 0.5)  # 超过该时间没有收到 IMU 消息则判定 IMU 故障(s)
+		self.declare_parameter('yaw_jump_max_deg', 10.0)  # 单帧 yaw 跳变超过该角度则视为异常数据(°)
+		self.declare_parameter('imu_invalid_frames_before_fault', 10)  # 连续异常帧数达到该值后判定 IMU 故障
+		self.declare_parameter('imu_recover_time', 1.0)  # IMU 连续正常多长时间后才允许恢复 PID(s)
+		self.declare_parameter('max_yaw_error_deg', 15.0)  # 直行偏航误差超过该值时关闭 PID，使用原始转向(°)
+		self.declare_parameter('heading_kp', 0.6)  # PID 比例系数：1°偏航 -> 0.6°转向修正
+		self.declare_parameter('heading_ki', 0.0)  # PID 积分系数，通常先设 0，有稳态误差再调
+		self.declare_parameter('heading_kd', 0.0)  # PID 微分系数，通常先设 0
+		self.declare_parameter('heading_correction_sign', -1.0)  # 修正方向；方向反了改成 +1.0
+		self.declare_parameter('heading_correction_limit_deg', 8.0)  # 单次航向修正最大角度(°)
+		self.declare_parameter('heading_integral_limit_deg', 5.0)  # 积分项限幅，防止积分饱和
+
+		self._imu_topic = self.get_parameter('imu_topic').value
+		self._heading_control_enabled = self.get_parameter('heading_control_enabled').value
+		self._straight_steering_threshold = self.get_parameter('straight_steering_threshold').value
+		self._heading_settle_time = self.get_parameter('heading_settle_time').value
+		self._imu_timeout = self.get_parameter('imu_timeout').value
+		self._yaw_jump_max_deg = self.get_parameter('yaw_jump_max_deg').value
+		self._imu_invalid_frames_before_fault = self.get_parameter('imu_invalid_frames_before_fault').value
+		self._imu_recover_time = self.get_parameter('imu_recover_time').value
+		self._max_yaw_error_deg = self.get_parameter('max_yaw_error_deg').value
+		self._heading_kp = self.get_parameter('heading_kp').value
+		self._heading_ki = self.get_parameter('heading_ki').value
+		self._heading_kd = self.get_parameter('heading_kd').value
+		self._heading_correction_sign = self.get_parameter('heading_correction_sign').value
+		self._heading_correction_limit_deg = self.get_parameter('heading_correction_limit_deg').value
+		self._heading_integral_limit_deg = self.get_parameter('heading_integral_limit_deg').value
+
+		self.get_logger().info(f'✅ 转向端口是 {port} 已打开，波特率 {baudrate}')
+		# ---- 打开串口 ----
 		# ---- 声明可配置参数 ----
 		self.dir_data = 0.0
 		self.declare_parameter('port', '/dev/ttyUSB2')
@@ -80,7 +124,7 @@ class channel_MBRTU(Node):
 		self.home_done = False
 		self.home_status_value = 0
 
-
+		self.v =
 
 		# 此端口只能采用同步，modbusTCP支持异步
 		self.write_speed_dir = False  # 写入速度和方向标志
@@ -290,9 +334,36 @@ class channel_MBRTU(Node):
 			values=[(0 * 256) + 100, v, 0],
 			device_id=self.slave1  # 从机地址
 		)
+	"""设置定位速度及加速度"""
+	def set_pos_v(self):
+		"""设置定位速度及加速度以及同步标志
+		加速度 00加速度  低字节
+		速度 高字节低字节
+		运动模式：00/01/02 分别表示相对上一输入目标位置进行相对位置运动/相对坐
+		标零点进行绝对位置运动/相对当前实时位置进行相对位置运动；
+		同步标志：00/01 分别表示立即执行/先缓存当前命令，参考说明书 3.5.2 说明；
+		例如，发送 01 FD 01 05 DC 00 00 00 7D 00 00 00 6B，正确返回 01 FD 02 6B，
+		电机以方向 CCW，速度 1500RPM，加速度 0 档位，相对运动 32000 个脉冲(10 圈)；
+		"""
+		self.ser.write_registers(
+			address=0xF1,  # 寄存器起始地址（0x00F3）
+			values=[0x0096, 100, 0x0100],
+			device_id=self.slave1  # 从机地址
+		)
 
-	def set_position(self, v):
-		self.
+	"""设置定位目标位置"""
+	def set_position(self, pos):
+		"""设置定位位置"""
+		# 将POS转换成双字
+		result_data = self.int32_to_two_words(pos)
+		self.ser.write_registers(
+			address=0xFC,  # 寄存器起始地址（0x00F3）
+			values=result_data,
+			device_id=self.slave1  # 从机地址
+		)
+
+
+
 
 	"""打开端口"""
 	def open_port(self):
@@ -321,6 +392,7 @@ class channel_MBRTU(Node):
 			self.home_zero()
 			time.sleep(0.1)
 			self.get_logger().info(f'🚗 启动电机控制线程')
+			self.set_pos_v()
 			self.commn_thread.start()
 			return True
 		except Exception as e:
@@ -347,11 +419,47 @@ class channel_MBRTU(Node):
 			self.ser = None
 			self.state = "close"
 
-	"""停止通讯"""
-	def stop(self):
-		"""停止线程运行"""
-		self.running = False
-		self.state = "close"
+	def enable_motor(self, flag):
+		"""
+		控制电机使能/不使能
+		:param client: ModbusRTU客户端实例
+		:param slave_addr: 从机地址（电机地址）
+		:param enable_state: 使能状态（0x00=不使能，0x01=使能）
+		:return: 是否成功（True/False）
+		"""
+		try:
+			# ModbusSerialClient.write_register()
+			if flag == True:
+				self.ser.write_registers(
+					address=0xF3,  # 寄存器起始地址（0x00F3）
+					values=[(171 * 256) + 1, 0],
+					device_id=self.slave1  # 从机地址
+				)
+			else:
+				self.ser.write_registers(
+					address=0xF3,  # 寄存器起始地址（0x00F3）
+					values=[(171 * 256) + 0, 0],
+					device_id=self.slave1  # 从机地址
+				)
+
+		except Exception as e:
+			self.get_logger().info(f"写入使能错误")
+			self.get_logger().info(f"error: {e}")
+			return False
+
+	def home_zero(self):
+		"""启动碰撞回零"""
+		# 设置回零模式
+		# 启动无限位碰撞回零
+		self.ser.write_register(
+			address=0x9A,  # 寄存器起始地址（0x009A）
+			values=0x0200,
+			device_id=self.slave1  # 从机地址
+		)
+		self.home_done = False
+		# 等待回零完成后，根据补偿值定位到中点
+
+
 
 	"""线程循环读取"""
 	def loop_start_(self):
@@ -392,10 +500,10 @@ class channel_MBRTU(Node):
 					# ==================== 处理回零状态 ====================
 					if not self.home_done and self.home_status_value == 0:
 						self.home_done = True
+						self.set_pos_v()
 						# 初始电机前轮回中
-						self.
-
-
+						# 回中位置补偿
+						self.set_position(self.center_pos)
 
 					else:
 						self.home_done = False
@@ -405,6 +513,7 @@ class channel_MBRTU(Node):
 					if self.write_speed_dir:
 						self.write_speed_dir = False
 
+					# ==================== 其他操作 ====================
 					# 2. 急停
 					if self.write_quick_stop:
 						self.get_logger().info('电机-急停')
@@ -470,18 +579,6 @@ class channel_MBRTU(Node):
 		final_angle = angle * multiplier
 		return round(final_angle, 1)  # 保留一位小数、
 
-	def home_zero(self):
-		"""启动碰撞回零"""
-		# 设置回零模式
-		# 启动无限位碰撞回零
-		self.ser.write_register(
-			address=0x9A,  # 寄存器起始地址（0x009A）
-			values=0x0200,
-			device_id=self.slave1  # 从机地址
-		)
-		self.home_done = False
-		# 等待回零完成后，根据补偿值定位到中点
-
 	@staticmethod
 	def int32_to_two_words(value):
 		"""
@@ -503,34 +600,6 @@ class channel_MBRTU(Node):
 		result_data = [int(low_word), int(high_word)]
 		return result_data
 
-	def enable_motor(self, flag):
-		"""
-		控制电机使能/不使能
-		:param client: ModbusRTU客户端实例
-		:param slave_addr: 从机地址（电机地址）
-		:param enable_state: 使能状态（0x00=不使能，0x01=使能）
-		:return: 是否成功（True/False）
-		"""
-		try:
-			# ModbusSerialClient.write_register()
-			if flag == True:
-				self.ser.write_registers(
-					address=0xF3,  # 寄存器起始地址（0x00F3）
-					values=[(171 * 256) + 1, 0],
-					device_id=self.slave1  # 从机地址
-				)
-			else:
-				self.ser.write_registers(
-					address=0xF3,  # 寄存器起始地址（0x00F3）
-					values=[(171 * 256) + 0, 0],
-					device_id=self.slave1  # 从机地址
-				)
-
-		except Exception as e:
-			self.get_logger().info(f"写入使能错误")
-			self.get_logger().info(f"error: {e}")
-			return False
-
 	"""清楚错误"""
 	def clear_error(self):
 		"""清除堵转/过热/过流保护"""
@@ -551,6 +620,12 @@ class channel_MBRTU(Node):
 		# ModbusSerialClient.write
 		self.ser.write_register(address=0xFE, value=38912, device_id=self.slave1)
 		self.ser.write_register(address=0xFE, value=38912, device_id=self.slave2)
+
+	"""停止通讯"""
+	def stop(self):
+		"""停止线程运行"""
+		self.running = False
+		self.state = "close"
 
 	def destroy_node(self):
 		"""重写节点销毁方法，确保线程被正确停止"""

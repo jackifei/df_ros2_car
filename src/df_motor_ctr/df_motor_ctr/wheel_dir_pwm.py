@@ -36,12 +36,12 @@ class JoyToServoNode(Node):
 		self.declare_parameter('imu_recover_time', 1.0)  # IMU 连续正常多长时间后才允许恢复 PID(s)
 		self.declare_parameter('max_yaw_error_deg', 15.0)  # 直行偏航误差超过该值时关闭 PID，使用原始转向(°)
 		self.declare_parameter('heading_kp', 0.6)  # PID 比例系数：1°偏航 -> 0.6°转向修正
-		self.declare_parameter('heading_ki', 0.0)  # PID 积分系数，通常先设 0，有稳态误差再调
+		self.declare_parameter('heading_ki', 0.0)  # PID 积分系数··，通常先设 0，有稳态误差再调
 		self.declare_parameter('heading_kd', 0.0)  # PID 微分系数，通常先设 0
 		self.declare_parameter('heading_correction_sign', -1.0)  # 修正方向；方向反了改成 +1.0
 		self.declare_parameter('heading_correction_limit_deg', 8.0)  # 单次航向修正最大角度(°)
 		self.declare_parameter('heading_integral_limit_deg', 5.0)  # 积分项限幅，防止积分饱和
-
+·
 		self._imu_topic = self.get_parameter('imu_topic').value
 		self._heading_control_enabled = self.get_parameter('heading_control_enabled').value
 		self._straight_steering_threshold = self.get_parameter('straight_steering_threshold').value
