@@ -52,9 +52,24 @@ STATUS_PRF = 0x02   # 位置到达
 STATUS_CGI = 0x04   # 堵转
 STATUS_CGP = 0x08   # 堵转保护
 
+# 1、上电或者重起端口后进行如下顺序操作
+#  使能                                             订阅阿克曼控制器发布的前轮转向角
+#  启动寻零                                         将前轮转向角转换成角度，并且写入到前轮转向线程中
+#  设置定位参数
+#
+#  进入线程
+#
+#  循环读取位置角度
+#  将角度通过前轮转向映射表计算出前轮转向角度
+#  赋值给属性值
+
 
 class FrontSteeringNode(Node):
     """前轮转向驱动 + 航向保持 + 归中补偿节点。"""
+
+
+
+
 
     def __init__(self):
         super().__init__('df_front_steering')
@@ -171,6 +186,19 @@ class FrontSteeringNode(Node):
         self._current_target_pulses = None
         self._last_sent_pulses = None
 
+        # ---- 单线程串口访问的请求标志（只有通讯线程会读写串口） ----
+        self._req_enable = None      # None=无请求, True=使能, False=断使能
+        self._req_pos_params = False  # 请求设置定位参数
+        self._req_home = False
+        self._req_stop = False
+        self._req_clear_error = False
+        self._pos_dirty = False      # 是否有新目标位置待写入
+
+        # 实时前轮转向角（通讯线程读取并发布）
+        self._real_steering_deg = 0.0
+        self._real_steering_rad = 0.0
+        self._real_pos_valid = False
+
         # ---- IMU / 航向 PID 状态 ----
         self._imu_received = False
         self._current_yaw = None
@@ -197,29 +225,29 @@ class FrontSteeringNode(Node):
         self._stop_event = threading.Event()
         self._comm_thread = threading.Thread(target=self._loop_start, daemon=True)
 
-        # ---- 订阅，订阅的阿克曼控制器发下的前轮转向角度话题 ----
+        # 订阅IMU话题
+        self._imu_sub = self.create_subscription(
+            Imu, self._imu_topic, self._imu_callback, 10)
+
+        # =====================话题=============================================
+        # ---- 订阅，订阅的阿克曼控制器发下的前轮转向角度话题 50HZ ----
         self._steer_sub = self.create_subscription(
             Float64MultiArray,
             '/hardware/front_steering_cmd',
             self._dir_callback,
             10,
         )
-        # 订阅IMU话题
-        self._imu_sub = self.create_subscription(
-            Imu, self._imu_topic, self._imu_callback, 10)
+        # ---- 发布关节状态到阿克曼控制器反馈节点 通过阿克曼控制器下发的转向角度话题转发 50HZ----
+        self.steer_feedback_pub = self.create_publisher(
+            JointState, '/hardware/steer_feedback', 10)
+
+        # =====================手柄节点=============================================
         # 订阅 df_joy_bridge中的手柄触发节点，事件驱动类型，只有切换的时候才进行发送，负载更小····
         self._calib_sub = self.create_subscription(
             Bool, '/heading_calibration', self._calibration_bool_callback, 10)
 
-        # ---- 发布关节状态到阿克曼控制器反馈节点 ----
-        self._joint_feedback_pub = self.create_publisher(
-            JointState, '/hardware/joint_feedback', 10)
-
-        # 前轮转向试试角度发布节点，此角度需要根据实际角度对照表进行对应
-        self._dir_rt_pub = self.create_publisher(Float64, '/df_dir_rt', 10)
-
-        # ---- 标定完成检测定时器（20Hz） ----
-        self._calib_timer = self.create_timer(0.05, self._calibration_tick)
+        # # ---- 标定完成检测定时器（20Hz） ----
+        # self._calib_timer = self.create_timer(0.05, self._calibration_tick)
 
         # ---- 打开串口并启动 ----
         self.get_logger().info(f'前轮转向节点初始化，归中补偿 center_pos={self.center_pos}')
@@ -241,25 +269,24 @@ class FrontSteeringNode(Node):
                 parity='N',
                 stopbits=1,
                 bytesize=8,
-                timeout=self._timeout,
             )
             self.ser.connect()
             time.sleep(0.1)
             self.state = 'open'
             self.get_logger().info(f'前轮转向串口 {self._port} 打开成功')
 
-            self._enable_motor(True) # 使能电机
-
-            self._set_pos_params() # 设置定位模式
-
+            # 所有串口写入都通过请求标志交给通讯线程，保证串口单线程访问
+            self._req_enable = True
+            self._req_pos_params = True
+            self._req_home = True
             self.get_logger().info('启动无限位碰撞回零...')
-            self._trigger_home()
             self._comm_thread.start()
             return True
         except Exception as exc:  # noqa: BLE001
             self.get_logger().error(f'前轮转向串口打开失败: {exc}')
             return False
 
+    # =====================端口操作=============================================
     def close_port(self):
         """关闭串口。"""
         if self.state == 'close':
@@ -272,15 +299,36 @@ class FrontSteeringNode(Node):
         finally:
             self.ser = None
             self.state = 'close'
-
     def stop(self):
         """停止通讯线程。"""
         self.running = False
         self.state = 'close'
+    """错误处理"""
+    def _quick_stop(self):
+        """立即停止（0xFE: 0x98 << 8 | 同步标志）。"""
+        try:
+            self.ser.write_register(
+                address=REG_STOP, value=0x9800, device_id=self._slave_id)
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().error(f'急停失败: {exc}')
+    def _clear_error(self):
+        """解除堵转/过热/过流保护（0x0E = 1）。"""
+        try:
+            self.ser.write_register(
+                address=REG_CLEAR_ERROR, value=1, device_id=self._slave_id)
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().error(f'清除保护失败: {exc}')
 
-    # ==================================================================
-    # 底层 MODBUS 指令（寄存器地址已确定）
-    # ==================================================================
+    # ==================== 底层modbus指令 =====================================
+    def _read_real_position(self):
+        """读取实时位置（0x36），返回带符号的角度（度）。失败返回 None。"""
+        regs = self._read_regs(REG_POSITION, 3)
+        if regs is None or len(regs) < 3:
+            return None
+        sign, high, low = regs[0], regs[1], regs[2]
+        raw = ((high << 8) | low) & 0xFFFF
+        angle = raw * 360.0 / 65536.0
+        return -angle if sign else angle
     def _read_regs(self, address, count):
         """读取保持寄存器，失败返回 None。"""
         if self.ser is None:
@@ -294,6 +342,7 @@ class FrontSteeringNode(Node):
         except Exception:  # noqa: BLE001
             return None
 
+    # ==================== 初始化指令 =====================================
     def _enable_motor(self, flag):
         """使能/失能电机（0xF3: 0xAB 开头 + 状态 + 同步标志）。"""
         try:
@@ -308,7 +357,6 @@ class FrontSteeringNode(Node):
                 self.get_logger().info(f'断使能电机')
         except Exception as exc:  # noqa: BLE001
             self.get_logger().error(f'写入使能失败: {exc}')
-
     def _set_pos_params(self):
         """设定位置模式的速度/加速度/运动模式/同步标志（0xF1）。"""
         # reg1 = 方向(0) + 加速度；reg2 = 速度；reg3 = 运动模式(1=绝对位置) + 同步(0)
@@ -323,7 +371,6 @@ class FrontSteeringNode(Node):
             self.get_logger().info(f'设置速度/加速度/运动模式')
         except Exception as exc:  # noqa: BLE001
             self.get_logger().error(f'设定位置模式参数失败: {exc}')
-
     def _trigger_home(self):
         """触发回零。mode 2 = 无限位碰撞回零。"""
         try:
@@ -340,6 +387,7 @@ class FrontSteeringNode(Node):
             self.get_logger().error(f'触发回零失败: {exc}')
             self.home_state = 'failed'
 
+    # ==================== 定位指令 =====================================
     @staticmethod
     def _int32_to_words(value):
         """有符号 int32 转两个 MODBUS 寄存器，高字在前。"""
@@ -348,7 +396,7 @@ class FrontSteeringNode(Node):
             value += 1 << 32
         value &= 0xFFFFFFFF
         return [(value >> 16) & 0xFFFF, value & 0xFFFF]
-
+    """启动定位"""
     def _set_position(self, pulses):
         """写入目标绝对位置（0xFC，有符号 int32 脉冲数）。"""
         pulses = int(pulses)
@@ -364,65 +412,6 @@ class FrontSteeringNode(Node):
         except Exception as exc:  # noqa: BLE001
             self.get_logger().error(f'写入目标位置失败: {exc}')
 
-    def _quick_stop(self):
-        """立即停止（0xFE: 0x98 << 8 | 同步标志）。"""
-        try:
-            self.ser.write_register(
-                address=REG_STOP, value=0x9800, device_id=self._slave_id)
-        except Exception as exc:  # noqa: BLE001
-            self.get_logger().error(f'急停失败: {exc}')
-
-    def _clear_error(self):
-        """解除堵转/过热/过流保护（0x0E = 1）。"""
-        try:
-            self.ser.write_register(
-                address=REG_CLEAR_ERROR, value=1, device_id=self._slave_id)
-        except Exception as exc:  # noqa: BLE001
-            self.get_logger().error(f'清除保护失败: {exc}')
-
-    def _read_real_position(self):
-        """读取实时位置（0x36），返回带符号的角度（度）。失败返回 None。"""
-        regs = self._read_regs(REG_POSITION, 3)
-        if regs is None or len(regs) < 3:
-            return None
-        sign, high, low = regs[0], regs[1], regs[2]
-        raw = ((high << 8) | low) & 0xFFFF
-        angle = raw * 360.0 / 65536.0
-        return -angle if sign else angle
-
-    # ==================================================================
-    # 通讯线程：回零状态机 + 状态读取
-    # ==================================================================
-    def _loop_start(self):
-        self.running = True
-        log_counter = 0
-        while not self._stop_event.is_set():
-            if self._stop_event.wait(timeout=0.05):
-                break
-            if self.ser is None:
-                continue
-            try:
-                self._handle_homing_state()
-                # 周期性读取实时位置与状态，便于监控
-
-                # 实时读取试试位置，并且更新当前类的属性
-                pos_deg = self._read_real_position()
-                status = self._read_regs(REG_STATUS, 1)
-                # 1秒打印一次数据结果
-                log_counter += 1
-                if log_counter % 20 == 0:
-                    if status is not None:
-                        status_val = status[0]
-                        self.get_logger().info(
-                            f'实时位置={pos_deg}°, '
-                            f'使能={bool(status_val & STATUS_ENS)}, '
-                            f'到位={bool(status_val & STATUS_PRF)}, '
-                            f'堵转={bool(status_val & STATUS_CGI)}')
-            except Exception as exc:  # noqa: BLE001
-                self.get_logger().debug(f'通讯循环异常: {exc}')
-        self.close_port()
-        self.get_logger().info('前轮转向通讯线程已停止')
-
     def _handle_homing_state(self):
         """回零状态机。"""
         # 如果不是在寻零过程中，就return··
@@ -437,6 +426,8 @@ class FrontSteeringNode(Node):
         # 如果电机正在回零中
         if self.home_state == 'homing':
             if org_state == HOME_ORG_SF:
+                self.get_logger().warn(
+                    f'回零成功')
                 self._saw_homing_active = True
                 return
             if org_state == HOME_ORG_CF:
@@ -445,7 +436,7 @@ class FrontSteeringNode(Node):
                     self._home_retry_count += 1
                     self.get_logger().warn(
                         f'回零失败，第 {self._home_retry_count} 次重试...')
-                    time.sleep(0.3)
+                    time.sleep(0.5)
                     self._trigger_home()
                 else:
                     self.home_state = 'failed'
@@ -453,22 +444,104 @@ class FrontSteeringNode(Node):
 
             # org_state == 0x00：可能是"未开始"或"已完成"。
             # 需看到过"正在回零"，或距触发超过 0.5s，才判定完成。
-            elapsed = 0.0
-            if self._home_trigger_time is not None:
-                elapsed = time.time() - self._home_trigger_time
-            if self._saw_homing_active or elapsed > 0.5:
+            if self._saw_homing_active:
                 self.get_logger().info('回零完成，执行归中定位')
                 self._set_position(self.center_pos)
                 self.home_state = 'ready'
-                self.ready = True
-                self._last_sent_pulses = None
+                self.ready = True # 回零归中完成，允许后续定位指令
+                self._last_sent_pulses = None # 最后一次的脉冲数
                 self.get_logger().info(f'前轮转向就绪，归中位置={self.center_pos}')
+                self._saw_homing_active = False # 只写入一次
+
+    def _process_write_requests(self):
+        """处理一次性写请求与位置目标写入（仅通讯线程调用）。"""
+        # 优先级：急停 > 清错 > 使能 > 定位参数 > 回零
+        if self._req_stop:
+            self._req_stop = False
+            self._quick_stop()
+        if self._req_clear_error:
+            self._req_clear_error = False
+            self._clear_error()
+        # 使能
+        if self._req_enable is not None:
+            flag = self._req_enable
+            self._req_enable = None
+            self._enable_motor(flag)
+        if self._req_pos_params:
+            self._req_pos_params = False
+            self._set_pos_params()
+        if self._req_home:
+            self._req_home = False
+            self._trigger_home()
+
+        # 位置目标（电平量）：ready 且有新目标时写入最新值
+        # self.ready = True  # 回零归中完成，允许后续定位指令
+        # self._pos_dirty = True  # 是否有新目标写入
+        if self._pos_dirty and self.ready and self._current_target_pulses is not None:
+            self._pos_dirty = False
+            self._set_position(self._current_target_pulses)
+
+    def _update_real_steering_angle(self):
+        """读取实时位置（0x36）并换算为前轮转向角（度/弧度）。"""
+        motor_deg = self._read_real_position()
+        if motor_deg is None:
+            return
+        # 电机轴角度 -> 电机脉冲数（默认 16 细分：3200 脉冲/圈）
+        motor_pulses = motor_deg * 3200.0 / 360.0
+        steering_pulses = motor_pulses - self.center_pos
+        steering_deg = steering_pulses / self._pulses_per_degree
+        # 前轮转向角，前轮转向弧度
+        self._real_steering_deg = steering_deg
+        self._real_steering_rad = math.radians(steering_deg)
+        # self._real_pos_valid = True
+
+    # ==================================================================
+    # 通讯线程：回零状态机 + 状态读取
+    # ==================================================================
+    def _loop_start(self):
+        self.running = True
+        log_counter = 0
+        while not self._stop_event.is_set():
+            if self._stop_event.wait(timeout=0.02):
+                break
+            if self.ser is None:
+                continue
+            try:
+                # 1. 处理一次性写请求和位置目标写入
+                self._process_write_requests()
+                # 2. 回零状态机
+                self._handle_homing_state()
+                # 3. 每个周期读取实时位置，更新前轮转向角
+                self._update_real_steering_angle()
+                # # 4. 发布实测前轮转向角反馈
+                # self._publish_real_feedback()
+                log_counter += 1
+                if log_counter % 50 == 0:
+                    status = self._read_regs(REG_STATUS, 1)
+                    if status is not None:
+                        status_val = status[0]
+                        self.get_logger().info(
+                            f'实时转向角={self._real_steering_deg:.2f}°, '
+                            f'使能={bool(status_val & STATUS_ENS)}, '
+                            f'到位={bool(status_val & STATUS_PRF)}, '
+                            f'堵转={bool(status_val & STATUS_CGI)}')
+            except Exception as exc:  # noqa: BLE001
+                self.get_logger().debug(f'通讯循环异常: {exc}')
+        # 退出前断开使能（串口仍由本线程独占）
+        if self.ser is not None:
+            try:
+                self._enable_motor(False)
+            except Exception:  # noqa: BLE001
+                pass
+        self.close_port()
+        self.get_logger().info('前轮转向通讯线程已停止')
+
 
     # ==================================================================
     # 转向指令回调
     # ==================================================================
     def _dir_callback(self, msg: Float64MultiArray):
-        """接收 /hardware/front_steering_cmd（rad），计算目标位置并下发。"""
+        """50HZ 接收 /hardware/front_steering_cmd（rad），计算目标位置并下发。"""
         if not msg.data:
             return
         base_rad = (msg.data[0] + msg.data[1]) / 2.0
@@ -484,16 +557,12 @@ class FrontSteeringNode(Node):
 
         target_pulses = self.center_pos + int(round(total_deg * self._pulses_per_degree))
         target_pulses = max(0, target_pulses)
+
+        # 只更新目标位置并置脏标志，真正的串口写入由通讯线程统一执行
         self._current_target_pulses = target_pulses
-
-        if self.ready:
-            # self._set_position(target_pulses)
-            pass
-
-        # 发布实际下达的转向角（含 PID 修正，deg）和关节反馈（rad）
-        total_rad = math.radians(total_deg)
-        self._publish_feedback(total_rad, total_deg)
-
+        self._pos_dirty = True
+        """发布实测前轮转向角"""
+        self._publish_feedback(self._real_steering_rad, self._real_steering_deg)
     def _publish_feedback(self, steer_rad, steer_deg):
         """发布关节反馈与实时转向角。"""
         msg = JointState()
@@ -501,15 +570,10 @@ class FrontSteeringNode(Node):
         msg.name = ['lh_joint', 'lq_joint', 'rh_joint', 'rq_joint']
         msg.position = [0.0, steer_rad, 0.0, steer_rad]
         msg.velocity = [0.0, 0.0, 0.0, 0.0]
-        self._joint_feedback_pub.publish(msg)
+        self.steer_feedback_pub.publish(msg)
 
-        rt = Float64()
-        rt.data = steer_deg
-        self._dir_rt_pub.publish(rt)
-
-    # ==================================================================
-    # IMU 与航向保持 PID（移植自 wheel_dir_pwm.py）
-    # ==================================================================
+    # ===================IMU 与航向保持 PID（移植自 wheel_dir_pwm.py）===============================================
+    """IMU回调"""
     def _imu_callback(self, msg: Imu):
         now = self.get_clock().now()
         yaw = self._yaw_from_quaternion(
@@ -540,14 +604,13 @@ class FrontSteeringNode(Node):
         x, y, z, w = x / norm, y / norm, z / norm, w / norm
         return math.atan2(2.0 * (w * z + x * y),
                           1.0 - 2.0 * (y * y + z * z))
-
     @staticmethod
     def _normalize_angle(angle):
         angle = math.fmod(angle + math.pi, 2.0 * math.pi)
         if angle < 0:
             angle += 2.0 * math.pi
         return angle - math.pi
-
+    """IMU滤波器"""
     def _filter_yaw(self, yaw_raw):
         """中值滤波 + 一阶低通滤波。"""
         self._yaw_median_queue.append(yaw_raw)
@@ -573,14 +636,12 @@ class FrontSteeringNode(Node):
         self._yaw_lowpass_prev = self._normalize_angle(
             self._yaw_lowpass_prev + self._yaw_lowpass_alpha * delta)
         return self._yaw_lowpass_prev
-
     def _handle_invalid_imu(self, now):
         self._last_imu_time = now
         self._imu_invalid_count += 1
         self._imu_recover_start_time = None
         if self._imu_invalid_count >= self._imu_invalid_frames_before_fault:
             self._mark_imu_fault()
-
     def _accept_valid_imu(self, now, yaw):
         self._current_yaw = yaw
         self._imu_received = True
@@ -596,7 +657,6 @@ class FrontSteeringNode(Node):
             self._imu_fault = False
             self._imu_recover_start_time = None
             self.get_logger().info('IMU 已恢复，允许重新启用航向保持')
-
     def _mark_imu_fault(self):
         if self._imu_fault:
             return
@@ -605,6 +665,7 @@ class FrontSteeringNode(Node):
         self._disable_heading_control()
         self.get_logger().warn('检测到 IMU 异常，关闭航向 PID')
 
+    # ===================IMU 与航向保持 PID（移植自 wheel_dir_pwm.py）===============================================
     def _disable_heading_control(self):
         self._heading_control_active = False
         self._heading_reference = None
@@ -616,6 +677,7 @@ class FrontSteeringNode(Node):
         self._last_yaw_error = 0.0
         self._yaw_integral = 0.0
 
+    # ===================航向保持计算=======================
     def _compute_heading_correction(self, steering_rad):
         """计算直线航向保持修正量（度）。标定模式下强制保持锁定航向。"""
         now = self.get_clock().now()
@@ -708,44 +770,15 @@ class FrontSteeringNode(Node):
         self._last_heading_correction_deg = correction
         return correction
 
-    # ==================================================================
-    # 航向修正标定（按钮触发 -> 保持航向 -> 自动保存归中补偿）
-    # ==================================================================
-
+    # ==================遥控触发 保存航向修正量 ================================================
     def _calibration_bool_callback(self, msg: Bool):
         pressed = bool(msg.data)
         if pressed and not self._calib_bool_prev:
-            self._start_calibration()
-        self._calib_bool_prev = pressed
-
-    def _start_calibration(self):
-        if self._calibrating:
-            return
-        if not self._imu_received or self._current_yaw is None:
-            self.get_logger().warn('航向修正失败：尚未收到有效 IMU 数据')
-            return
-        if self._imu_fault:
-            self.get_logger().warn('航向修正失败：IMU 处于故障状态')
-            return
-
-        self._calibrating = True
-        self._calib_start_time = self.get_clock().now()
-        self._heading_reference = self._current_yaw
-        self._heading_control_active = True
-        self._straight_start_time = None
-        self._reset_heading_pid()
-        self._last_control_time = self.get_clock().now()
-        self._last_heading_correction_deg = 0.0
-        self.get_logger().info(
-            '航向修正已启动：保持当前航向，稳定后自动保存归中补偿')
-
-    def _calibration_tick(self):
-        if not self._calibrating or self._calib_start_time is None:
-            return
-        now = self.get_clock().now()
-        elapsed = (now - self._calib_start_time).nanoseconds / 1e9
-        if elapsed >= self._calibration_settle_time:
+            # 开始标定
+            # self._start_calibration()
+            # 航向修正标定（按钮触发 -> 保持航向 -> 自动保存归中补偿）
             self._finalize_calibration()
+        self._calib_bool_prev = pressed
 
     def _finalize_calibration(self):
         if self._imu_fault or not self._imu_received:
@@ -775,9 +808,8 @@ class FrontSteeringNode(Node):
             f'航向修正完成：center_pos {self.center_pos - offset} -> '
             f'{self.center_pos}（偏移 {offset}）')
 
-    # ==================================================================
-    # 归中补偿持久化
-    # ==================================================================
+    # ===================读取和保存补偿位置===============================================
+    """读取补偿位置"""
     def _load_center_pos(self, default):
         path = Path(self._calibration_file).expanduser()
         if not path.exists():
@@ -791,6 +823,7 @@ class FrontSteeringNode(Node):
             pass
         return default
 
+    """保存补偿位置"""
     def _persist_center_pos(self):
         path = Path(self._calibration_file).expanduser()
         try:
@@ -806,11 +839,9 @@ class FrontSteeringNode(Node):
     # ==================================================================
     def destroy_node(self):
         self.get_logger().info('正在停止前轮转向节点...')
-        try:
-            self._enable_motor(False)
-        except Exception:  # noqa: BLE001
-            pass
         self._stop_event.set()
+        if self._comm_thread.is_alive():
+            self._comm_thread.join(timeout=2.0)
         self.close_port()
         super().destroy_node()
 

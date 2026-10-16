@@ -7,17 +7,6 @@ from std_msgs.msg import Float64, Float64MultiArray
 from rclpy.node import Node             # ROS2 节点类
 import math
 
-# # 创建电机状态字典
-# motor_state_data = {
-# 	"left_motor_speed": 0.0,  # 左轮速度
-# 	"right_motor_speed": 0.0, # 右轮速度
-# 	"steering_speed": 0.1,   # 转向速度
-# 	"current_steering_angle": 15.5   # 转向角度
-# }
-# # 2. 创建 String 消息并赋值
-# motor_state_msg = String()
-# motor_state_msg.data = json.dumps(motor_state_data)
-# self.pub.publish(motor_state_msg)             # 发布电机状态消息
 
 class motor_status:
 	Oac_TF = False      # 掉电标志  7
@@ -25,11 +14,22 @@ class motor_status:
 	Cgi_TF = False      # 堵转标志  2
 	Ens_TF = False      # 使能状态  0
 
+# ----  MODBUS 寄存器地址 ----
+REG_ENABLE = 56        # 使能电机
+REG_QUICK_STOP = 56/60    # 急停电机
+REG_SET_L_V = 0xFC    # 设置L电机速度
+REG_HOME_TRIGGER = 0x9A  # 设置R电机速度
+14-15# L电机实时转速
+9-10# R电机实时转速
+REG_HOME_STATUS = 0x3B   # 读取L编码器
+REG_STATUS = 0x3A        # 读取R编码器
+
+
+
 class channel_MBRTU(Node):
 	"""MB线程控制器 """
-
 	def __init__(self):
-		super().__init__("df_motor_status")
+		super().__init__("df_motor_control")
 
 		# ---- 声明可配置参数 ----
 		self.dir_data = 0.0
@@ -43,16 +43,30 @@ class channel_MBRTU(Node):
 
 		# 此处需要修改，上一个话题的发布是50HZ，对于点击驱动来说，相应不了这么高的频率
 		# 由于发布频率的问题，需要修改为转速当变化时才进行写入，并且为int类型，下位机采用modbus协议，只能是int
+		# =====================订阅后轮速度====================================
 		# 订阅后轮速度节点，用来数据计算
 		self.sub = self.create_subscription(Float64MultiArray,
 		                                    '/hardware/rear_wheel_cmd',
-		                                    self.listener_callback,
+		                                    self.rear_wheel_callback,
 		                                    10)
-		# 订阅前轮转向指令
-		# ---- 订阅 front_steering_cmd 前轮转向 话题 ----
+		# =====================订阅关节状态====================================
+		# 订阅前轮转向发布的关节状态话题，然后将此话题补充速度内容，并且再发布
+		self.sub_front_steer = self.create_subscription(JointState,
+		                                             '/hardware/steer_feedback',
+		                                             self.front_steer_callback,
+		                                             10
+		                                             )
+		# ---- 将订阅的关节状态，补充速度数据，然后发布----
+		self._joint_feedback_pub = self.create_publisher(
+			JointState, '/hardware/joint_feedback', 10)
+
+
+
+		# =====================话题====================================
+		# ---- 订阅前轮转向指令 front_steering_cmd 前轮转向 话题 ----
 		self.subscription = self.create_subscription(Float64MultiArray,
 		                                             '/hardware/front_steering_cmd',
-		                                             self.dir_callback,
+		                                             self.front_steer_callback,
 		                                             10
 		                                             )
 		# 订阅前轮转向试试角度
@@ -122,7 +136,7 @@ class channel_MBRTU(Node):
 		# 实例对象
 		self.open_port()
 
-	def dir_callback(self, msg: Float64MultiArray):
+	def front_steer_callback(self, msg: Float64MultiArray):
 		"""收到手柄数据时自动调用"""
 		# ---------- 用户需在此处实现角度计算 ----------
 		# self.get_logger().info(f'转向角度{msg.data[0]}  {msg.data[1]}')
@@ -231,10 +245,7 @@ class channel_MBRTU(Node):
 		# 接收到的是角度，需要将角度转换成弧度
 		self.dir_data = (msg.data / 180 ) * math.pi
 
-		# self.get_logger().info(f'{self.dir_data}')
-
-
-	def listener_callback(self, msg:Float64MultiArray):
+	def rear_wheel_callback(self, msg:Float64MultiArray):
 		"""
 		接受手柄消息，响应手柄按键，将参数写入到电机驱动中
 		"""
@@ -555,10 +566,9 @@ class channel_MBRTU(Node):
 		except Exception as e:
 			self.get_logger().info(f"写入使能错误")
 			self.get_logger().info(f"error: {e}") 
-			return False 
+			return False
 
-	
-
+	# ==================== 定位指令 =====================================
 	"""清楚错误"""
 	def clear_error(self):
 		"""清除堵转/过热/过流保护"""
@@ -572,14 +582,12 @@ class channel_MBRTU(Node):
 			value=1,
 			device_id=self.slave2  # 从机地址
 		)
-
 	"""急停"""
 	def quick_stop(self):
 		"""急停"""
 		# ModbusSerialClient.write
 		self.ser.write_register(address=0xFE, value=38912, device_id=self.slave1)
 		self.ser.write_register(address=0xFE, value=38912, device_id=self.slave2)
-
 
 	def destroy_node(self):
 		"""重写节点销毁方法，确保线程被正确停止"""
