@@ -1,0 +1,46 @@
+/df_front_steering:
+  ros__parameters:
+    # ---- 串口参数 ----
+    port: '/dev/ttyUSB0'
+    baudrate: 115200
+    timeout: 0.5
+    slave_id: 1
+
+    # ---- 位置 / 归中补偿参数 ----
+    center_pos: 1600            # 车轮回正对应的电机绝对位置（脉冲数），零点=左转向极限
+    pulses_per_degree: 8.8889   # 每度转向角对应脉冲数（默认 16 细分：3200/360）
+    steering_angle_limit_deg: 30.0
+    steering_sign: 1.0          # 转向方向反了改成 -1.0
+    pos_speed_rpm: 100          # 定位速度
+    pos_accel: 150              # 定位加速度
+    home_mode: 2                # 2 = 无限位碰撞回零
+
+    # ---- 航向修正标定参数 ----
+    calibration_button: 6       # /joy 按钮索引（0=A,1=B,2=X,3=Y,4=L1,5=R1,6=select,7=start...）
+    calibration_settle_time: 2.0
+    calibration_file: '~/.df_motor_ctr/front_steering_center.yaml'
+
+    # ---- IMU 订阅与航向 PID 参数 ----
+    imu_topic: '/imu/data_raw'
+    heading_control_enabled: true
+    straight_steering_threshold: 0.03
+    heading_settle_time: 1.2
+
+    # ---- IMU 故障检测与恢复参数 ----
+    imu_timeout: 0.5
+    yaw_jump_max_deg: 15.0
+    imu_invalid_frames_before_fault: 10
+    imu_recover_time: 1.0
+    max_yaw_error_deg: 10.0
+
+    # ---- PID 参数 ----
+    heading_kp: 0.8
+    heading_ki: 0.001
+    heading_kd: 0.0
+    heading_correction_sign: -1.0
+    heading_correction_limit_deg: 8.0
+    heading_integral_limit_deg: 5.0
+
+    # ---- 航向角滤波参数 ----
+    yaw_median_window: 9
+    yaw_lowpass_alpha: 0.2

@@ -41,7 +41,7 @@ class JoyToServoNode(Node):
 		self.declare_parameter('heading_correction_sign', -1.0)  # 修正方向；方向反了改成 +1.0
 		self.declare_parameter('heading_correction_limit_deg', 8.0)  # 单次航向修正最大角度(°)
 		self.declare_parameter('heading_integral_limit_deg', 5.0)  # 积分项限幅，防止积分饱和
-·
+
 		self._imu_topic = self.get_parameter('imu_topic').value
 		self._heading_control_enabled = self.get_parameter('heading_control_enabled').value
 		self._straight_steering_threshold = self.get_parameter('straight_steering_threshold').value

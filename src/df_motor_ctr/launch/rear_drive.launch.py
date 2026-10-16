@@ -10,13 +10,13 @@ def generate_launch_description():
     config_path_dir = os.path.join(
         get_package_share_directory('df_motor_ctr'),
         'config',
-        'joy_config.yaml',
+        'motor_control.yaml',
     )
     return LaunchDescription([
         Node(
             package='df_motor_ctr',
-            executable='wheel_dir',
-            name='sbus_joy',
+            executable='motor_ctr',
+            name='df_motor_ctr',
             output='screen',
             parameters=[config_path_dir],
         )

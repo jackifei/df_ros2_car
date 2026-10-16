@@ -10,8 +10,9 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        (f'share/{package_name}/config', ['config/joy_config.yaml']),
+        (f'share/{package_name}/config', ['config/motor_control.yaml']),
         (f'share/{package_name}/config', ['config/wheel_dir_pwm.yaml']),
+        (f'share/{package_name}/config', ['config/front_steering.yaml']),
         (f'share/{package_name}/launch', ['launch/df_joy_control.launch.py']),
         (f'share/{package_name}/launch', ['launch/front_steering.launch.py']),
         (f'share/{package_name}/launch', ['launch/rear_drive.launch.py']),
@@ -31,7 +32,8 @@ setup(
         'console_scripts': [
             'get_topic_joy = df_motor_ctr.get_topic_joy:main',
             'motor_ctr = df_motor_ctr.motor_control:main',   # 电机控制
-            'wheel_dir = df_motor_ctr.wheel_dir_pwm:main'    # 转向控制
+            'wheel_dir = df_motor_ctr.wheel_dir_pwm:main',   # 转向控制（旧舵机版）
+            'front_steering = df_motor_ctr.front_steering:main',  # 转向控制（步进电机版）
         ],
     },
 )
