@@ -1,7 +1,7 @@
 /df_front_steering:
   ros__parameters:
     # ---- 串口参数 ----
-    port: '/dev/ttyUSB0'
+    port: '/dev/ttyUSB2'
     baudrate: 115200
     timeout: 0.5
     slave_id: 1
