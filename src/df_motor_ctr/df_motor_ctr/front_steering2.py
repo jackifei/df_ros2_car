@@ -124,7 +124,7 @@ class channel_MBRTU(Node):
 		self.home_done = False
 		self.home_status_value = 0
 
-		self.v =
+		# self.v =
 
 		# 此端口只能采用同步，modbusTCP支持异步
 		self.write_speed_dir = False  # 写入速度和方向标志
