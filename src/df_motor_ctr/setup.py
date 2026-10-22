@@ -16,6 +16,7 @@ setup(
         (f'share/{package_name}/launch', ['launch/df_joy_control.launch.py']),
         (f'share/{package_name}/launch', ['launch/front_steering.launch.py']),
         (f'share/{package_name}/launch', ['launch/rear_drive.launch.py']),
+        (f'share/{package_name}/launch', ['launch/front_steering_test.launch.py'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -34,6 +35,7 @@ setup(
             'motor_ctr = df_motor_ctr.motor_control:main',   # 电机控制
             # 'wheel_dir = df_motor_ctr.wheel_dir_pwm:main',   # 转向控制（旧舵机版）
             'front_steering = df_motor_ctr.front_steering:main',  # 转向控制（步进电机版）
+            'front_steering_test = df_motor_ctr.front_steering_test:main',  # 转向控制测试程序（步进电机版）
         ],
     },
 )

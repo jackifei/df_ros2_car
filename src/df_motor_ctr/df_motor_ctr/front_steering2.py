@@ -375,7 +375,8 @@ class channel_MBRTU(Node):
 			self.ser = ModbusSerialClient(port=self.port, baudrate=115200,
 			                              parity="N",
 			                              stopbits=1,
-			                              bytesize=8)  # 最后一项必须关闭，否则报错strict=False
+			                              bytesize=8,
+			                              )  # 最后一项必须关闭，否则报错strict=False
 			self.ser.connect()
 			# 添加串口就绪等待
 			time.sleep(0.1)

@@ -1,7 +1,7 @@
 /df_front_steering:
   ros__parameters:
     # ---- 串口参数 ----
-    port: '/dev/ttyUSB2'
+    port: '/dev/ttyUSB0'
     baudrate: 115200
     timeout: 0.5
     slave_id: 1
@@ -12,7 +12,7 @@
     steering_angle_limit_deg: 30.0
     steering_sign: 1.0          # 转向方向反了改成 -1.0
     pos_speed_rpm: 100          # 定位速度
-    pos_accel: 150              # 定位加速度
+    pos_accel: 200              # 定位加速度
     home_mode: 2                # 2 = 无限位碰撞回零
 
     # ---- 航向修正标定参数 ----

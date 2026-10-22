@@ -43,7 +43,7 @@ REG_STOP = 0xFE          # 立即停止
 REG_CLEAR_ERROR = 0x0E   # 解除堵转/过热/过流保护
 
 # 回零状态标志位 (0x3B)
-HOME_ORG_SF = 0x04  # 正在回零
+HOME_ORG_SF = 0x04 # 正在回零
 HOME_ORG_CF = 0x08  # 回零失败
 
 # 电机状态标志位 (0x3A)
@@ -265,7 +265,7 @@ class FrontSteeringNode(Node):
         try:
             self.ser = ModbusSerialClient(
                 port=self._port,
-                baudrate=self._baudrate,
+                baudrate=115200,
                 parity='N',
                 stopbits=1,
                 bytesize=8,
@@ -276,11 +276,16 @@ class FrontSteeringNode(Node):
             self.get_logger().info(f'前轮转向串口 {self._port} 打开成功')
 
             # 所有串口写入都通过请求标志交给通讯线程，保证串口单线程访问
-            self._req_enable = True
-            self._req_pos_params = True
-            self._req_home = True
-            self.get_logger().info('启动无限位碰撞回零...')
+
             self._comm_thread.start()
+            self.get_logger().info('请求使能...')
+            self._req_enable = True
+            time.sleep(0.1)
+            self.get_logger().info('启动位置参数...')
+            self._req_pos_params = True
+            time.sleep(0.1)
+            self.get_logger().info('启动回零...')
+            self._req_home = True
             return True
         except Exception as exc:  # noqa: BLE001
             self.get_logger().error(f'前轮转向串口打开失败: {exc}')
@@ -417,41 +422,45 @@ class FrontSteeringNode(Node):
         # 如果不是在寻零过程中，就return··
         if self.home_state != 'homing':
             return
+  .
         # 回零状态判断
         home_status = self._read_regs(REG_HOME_STATUS, 1)
         if home_status is None:
             return
         org_state = home_status[0] & (HOME_ORG_SF | HOME_ORG_CF)
-
+        self.get_logger().error(f'{org_state}-{home_status}')
         # 如果电机正在回零中
+        # return
         if self.home_state == 'homing':
-            if org_state == HOME_ORG_SF:
+        if org_state == 0:
+            self.get_logger().warn(
+                f'回零成功')
+            self._saw_homing_active = True
+            self.home_state = 'ready'
+            return
+        if org_state == HOME_ORG_CF:
+            self.get_logger().error('回零失败')
+            if self._home_retry_count < self._max_home_retry:
+                self._home_retry_count += 1
                 self.get_logger().warn(
-                    f'回零成功')
-                self._saw_homing_active = True
-                return
-            if org_state == HOME_ORG_CF:
-                self.get_logger().error('回零失败')
-                if self._home_retry_count < self._max_home_retry:
-                    self._home_retry_count += 1
-                    self.get_logger().warn(
-                        f'回零失败，第 {self._home_retry_count} 次重试...')
-                    time.sleep(0.5)
-                    self._trigger_home()
-                else:
-                    self.home_state = 'failed'
-                return
+                    f'回零失败，第 {self._home_retry_count} 次重试...')
+                time.sleep(0.5)
+                self._trigger_home()
+            else:
+                self.home_state = 'failed'
+            return
 
-            # org_state == 0x00：可能是"未开始"或"已完成"。
-            # 需看到过"正在回零"，或距触发超过 0.5s，才判定完成。
-            if self._saw_homing_active:
-                self.get_logger().info('回零完成，执行归中定位')
-                self._set_position(self.center_pos)
-                self.home_state = 'ready'
-                self.ready = True # 回零归中完成，允许后续定位指令
-                self._last_sent_pulses = None # 最后一次的脉冲数
-                self.get_logger().info(f'前轮转向就绪，归中位置={self.center_pos}')
-                self._saw_homing_active = False # 只写入一次
+        # org_state == 0x00：可能是"未开始"或"已完成"。
+        # 需看到过"正在回零"，或距触发超过 0.5s，才判定完成。
+        if self._saw_homing_active and self.home_state == 'ready':
+            time.sleep(0.2)
+            self.get_logger().info('回零完成，执行归中定位')
+            self._set_position(self.center_pos)
+            self.home_state = 'ready'
+            self.ready = True # 回零归中完成，允许后续定位指令
+            self._last_sent_pulses = None # 最后一次的脉冲数
+            self.get_logger().info(f'前轮转向就绪，归中位置={self.center_pos}')
+            self._saw_homing_active = False # 只写入一次
 
     def _process_write_requests(self):
         """处理一次性写请求与位置目标写入（仅通讯线程调用）。"""
@@ -495,9 +504,8 @@ class FrontSteeringNode(Node):
         self._real_steering_rad = math.radians(steering_deg)
         # self._real_pos_valid = True
 
-    # ==================================================================
     # 通讯线程：回零状态机 + 状态读取
-    # ==================================================================
+
     def _loop_start(self):
         self.running = True
         log_counter = 0
@@ -509,15 +517,18 @@ class FrontSteeringNode(Node):
             try:
                 # 1. 处理一次性写请求和位置目标写入
                 self._process_write_requests()
-                # 2. 回零状态机
+                # # 2. 回零状态机
                 self._handle_homing_state()
-                # 3. 每个周期读取实时位置，更新前轮转向角
-                self._update_real_steering_angle()
+
                 # # 4. 发布实测前轮转向角反馈
                 # self._publish_real_feedback()
+
+                # 每个周期读取实时位置，更新前轮转向角
+                self._update_real_steering_angle()
                 log_counter += 1
                 if log_counter % 50 == 0:
                     status = self._read_regs(REG_STATUS, 1)
+                    # self.get_logger().info(resp)
                     if status is not None:
                         status_val = status[0]
                         self.get_logger().info(
@@ -839,6 +850,7 @@ class FrontSteeringNode(Node):
     # ==================================================================
     def destroy_node(self):
         self.get_logger().info('正在停止前轮转向节点...')
+        self._req_enable = False
         self._stop_event.set()
         if self._comm_thread.is_alive():
             self._comm_thread.join(timeout=2.0)
