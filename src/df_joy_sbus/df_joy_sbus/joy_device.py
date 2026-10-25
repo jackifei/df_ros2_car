@@ -74,7 +74,7 @@ class SbusJoyNode(Node):
         baudrate = self.get_parameter('baudrate').value
         self._frame_id = self.get_parameter('frame_id').value
         poll_hz = self.get_parameter('poll_hz').value
-        topic = self.get_parameter('topic').value
+        topic = self.get_parameter('topic').value  # 话题名称
 
         self._publisher = self.create_publisher(JoyValue, topic, 10)
 

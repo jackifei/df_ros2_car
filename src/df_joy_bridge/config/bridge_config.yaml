@@ -1,17 +1,65 @@
 joy_bridge:
   ros__parameters:
-    input_topic: 'joy_value'
-    output_topic: 'joy_state'
+    input_topic: 'joy_value' # 适应的发出的话题名称
+    output_topic: 'joy_state' # 将手柄进行物理映射的话题转出
 
-    # 映射区间：原始 SBUS 值 -> 微秒值
-    # 说明：中立点 raw=992 会映射到 us=1500
-    # 修改点：请按实际摇杆行程标定（把摇杆打到最小/最大，看驱动话题里的原始值）
-    raw_min: 192
-    raw_max: 1792
-    us_min: 1000
-    us_max: 2000
-
-    # 开关通道（从 1 开始的通道号）
-    switch_channels: [6, 7]
     # 开关判定阈值（微秒）：mapped >= 阈值 -> 1，否则 -> 0
-    switch_threshold: 1500
+    # 开关通道固定为 6/7，不在配置中修改；ch06/ch07 的映射值仍照常发布
+    switch_threshold: 1500.0
+
+    # 每个通道单独映射：channel_mapping.<通道号> 下分别配置该通道自己的
+    # 原始 SBUS 区间（raw_min/raw_max）与输出区间（out_min/out_max）。
+    # 说明：raw_min=192、raw_max=1792 时，中立点 raw=992 会映射到 1500。
+    # 修改点：请按实际摇杆行程标定（把摇杆打到最小/最大，看驱动话题里的原始值）；
+    #         如需反向输出，把 out_min/out_max 调换即可。
+    channel_mapping:
+      ch01:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
+      ch02:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
+      ch03:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
+      ch04:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
+      ch05:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
+      ch06:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
+      ch07:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
+      ch08:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
+      ch09:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
+      ch10:
+        raw_min: 192
+        raw_max: 1792
+        out_min: 1000.0
+        out_max: 2000.0
