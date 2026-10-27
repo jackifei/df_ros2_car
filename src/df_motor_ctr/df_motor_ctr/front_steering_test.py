@@ -67,8 +67,8 @@ class FrontSteeringNode(Node):
         self.declare_parameter('slave_id', 1)
 
 
-        self.declare_parameter('steer_table_motordeg', [])  # 定位加速度
-        self.declare_parameter('steer_table_motordeg', [])  # 2 = 无限位碰撞回零··
+        # self.declare_parameter('steer_table_motordeg', [0.0, 400.0, 800.0, 1200.0, 1600.0, 2000.0, 2400.0])  # 电机角度
+        # self.declare_parameter('steer_table_motordeg', [-30.0, -20.0, -10.0, 0.0, 10.0, 20.0, 30.0])  # 车轮角度
 
 
         # ==================== 位置 / 归中补偿参数 ====================
@@ -117,8 +117,8 @@ class FrontSteeringNode(Node):
         self._slave_id = int(self.get_parameter('slave_id').value)
 
         # 读取转向角度映射表
-        self.steer_table_motordeg = self.get_parameter('steer_table_motordeg').value
-        self.steer_table_wheeldeg = self.get_parameter('steer_table_wheeldeg').value
+        # self.steer_table_motordeg = self.get_parameter('steer_table_motordeg').value
+        # self.steer_table_wheeldeg = self.get_parameter('steer_table_wheeldeg').value
 
         # ---- 读取位置参数 ----
         self.center_pos = int(self.get_parameter('center_pos').value)
@@ -216,7 +216,9 @@ class FrontSteeringNode(Node):
         self._calibrating = False
         self._calib_start_time = None
         self._calib_button_prev = False
-        self._calib_bool_prev = False
+
+        # 按钮被按下状态
+        self._button_preess_status = False
 
         # ---- 串口线程 ----
         self._stop_event = threading.Event()
@@ -239,7 +241,7 @@ class FrontSteeringNode(Node):
         #     JointState, '/hardware/steer_feedback', 10)
 
         # =====================手柄节点=============================================
-        # 订阅 df_joy_bridge中的手柄触发节点，事件驱动类型，只有切换的时候才进行发送，负载更小····
+        # 订阅手柄的桥接节点，50HZ频率，不再使用事件触发····
         self._calib_sub = self.create_subscription(
            JoyState, '/joy_state', self._calibration_bool_callback, 10)
 
@@ -420,7 +422,7 @@ class FrontSteeringNode(Node):
         if home_status is None:
             return
         org_state = home_status[0] & (HOME_ORG_SF | HOME_ORG_CF)
-        self.get_logger().error(f'{org_state}-{home_status}')
+        # self.get_logger().error(f'{org_state}-{home_status}')
         # [0]-[3]代表回零完成
         if self.home_state == 'homing':
             if org_state == 0: # 回零完成
@@ -488,7 +490,7 @@ class FrontSteeringNode(Node):
                     # 值改变写入新数据
                 if self._pos_change_trig and self.home_state == 'ready' and self._current_target_pulses is not None:
                     self._set_position(self._current_target_pulses)
-                    self._pos_last_ = self._current_target_pulses
+                    # self._pos_last_ = self._current_target_pulses
                     self._pos_change_trig = False
 
                 # 2. 回零状态机
@@ -760,13 +762,29 @@ class FrontSteeringNode(Node):
 
     # ==================遥控触发 保存航向修正量 ================================================
     def _calibration_bool_callback(self, msg: JoyState):
-        pressed = bool(msg.data)
-        if pressed and not self._calib_bool_prev:
+
+        raw_channels = [
+            msg.ch01, msg.ch02, msg.ch03, msg.ch04, msg.ch05,
+            msg.ch06, msg.ch07, msg.ch08, msg.ch09, msg.ch10,
+        ]
+        switch06 = msg.switch06
+        switch07 = msg.switch07
+        self._current_target_pulses = raw_channels[0]
+        # 值改变发送一次标志位
+        if self._pos_last_ != self._current_target_pulses and self._pos_change_trig == False:
+            self._pos_change_trig = True
+            self._pos_last_ = self._current_target_pulses
+            self.get_logger().info(f'目标位置={raw_channels[0]}')
+        if not switch06 :
+            self._button_preess_status = False
+        if switch06 and not self._button_preess_status:
             # 开始标定
             # self._start_calibration()
             # 航向修正标定（按钮触发 -> 保持航向 -> 自动保存归中补偿）
-            self._finalize_calibration()
-        self._calib_bool_prev = pressed
+            # self._finalize_calibration()
+            # 先不进行标定
+            self.get_logger().info(f'6 标定开关打开={switch06}')
+            self._button_preess_status = True
 
     def _finalize_calibration(self):
         if self._imu_fault or not self._imu_received:

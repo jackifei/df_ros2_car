@@ -16,8 +16,8 @@ joy_bridge:
       ch01:
         raw_min: 192
         raw_max: 1792
-        out_min: 1000.0
-        out_max: 2000.0
+        out_min: -600.0
+        out_max: -2600.0
       ch02:
         raw_min: 192
         raw_max: 1792
