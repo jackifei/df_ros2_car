@@ -1,611 +1,744 @@
-import rclpy
-import time
-import threading
-from pymodbus.client import ModbusSerialClient
-from sensor_msgs.msg import JointState
-from std_msgs.msg import Float64, Float64MultiArray
-from rclpy.node import Node             # ROS2 节点类
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+df_motor_ctr 后轮驱动节点（适配 无刷电机驱动器 MSSD-60EHB_2D）
+========================================================================
+
+本节点负责阿克曼结构小车的后轮（左、右两个无刷电机）驱动：
+  * 接收阿克曼控制器下发的左/右后轮速度指令，换算成电机 RPM 后通过
+    RS485(MODBUS-RTU) 写入驱动器；
+  * 周期读取左右电机的实时转速（RPM）与换向次数（当作编码器/位置反馈），
+    转换成角速度/角度后以 JointState 发布给里程计 / 阿克曼控制器；
+  * 提供急停、复位、读编码器值等控制接口。
+
+驱动对象：MSSD-60EHB_2D（双电机一体驱动器，一个从站同时控制左、右电机）。
+
+线程模型：所有 Modbus 读写都只在通信线程（_comm_loop）内执行。ROS2 回调、
+定时器以及对外公开的 quick_stop()/reset()/read_*() 方法只读写状态标志或
+缓存数据，不直接操作串口；需要写电机时由它们置标志，通信线程统一执行。
+
+====================================================================
+协议要点（详见《MSSD-60EHB_2D RS485 通讯协议及寄存器说明书 V2.0》）
+====================================================================
+1. 物理层 / 帧格式
+   * MODBUS-RTU，支持功能码 0x03(读保持寄存器)、0x06(写单个寄存器)、
+     0x10(写多个寄存器)。
+   * 出厂默认：波特率 9600bps、8 数据位、无校验 + 1 停止位、从站地址 1。
+     （若在初始调试时改过波特率/地址，请在 config/motor_control.yaml 中
+       同步修改，保持一致。）
+   * 一个 16 位寄存器 = 1 个字；32 位有符号值 = 高半字寄存器 + 低半字寄存器，
+     高半字在前。示例：+1000 -> 高=0x0000 低=0x03E8；-500 -> 高=0xFFFF 低=0xFE0C。
+
+2. 本节点默认工作在“独立速度闭环”模式（系统模式寄存器 0x007B = 1）。
+   该模式下左右电机各自独立进行速度闭环，需要设置后轮左右轮速度时使用该模式。
+   其它模式（同源开环/闭环、差速闭环）由使用者在初始调试时按需固定，
+   本节点不做修改。
+
+3. 本节点用到的寄存器（寄存器地址均为十进制，括号内为十六进制）：
+   电机控制（写）：
+     56(0x38)  停止寄存器1（右电机） 0=正常停止 1=紧急停止 2=自由停止  [0x06]
+     57(0x39)  设定目标启动寄存器1 高半字（右电机速度/目标）          [0x06/0x10]
+     58(0x3A)  设定目标启动寄存器1 低半字（右电机速度/目标）          [0x06/0x10]
+     60(0x3C)  停止寄存器2（左电机）                                 [0x06]
+     61(0x3D)  设定目标启动寄存器2 高半字（左电机速度/目标）          [0x06/0x10]
+     62(0x3E)  设定目标启动寄存器2 低半字（左电机速度/目标）          [0x06/0x10]
+     64(0x40)  参数恢复出厂命令（写入 1 恢复出厂）                    [0x06]
+     65(0x41)  测试控制（1=左电机相序学习 2=右电机相序学习）          [0x06]
+
+   实时状态（读，0x03）：
+      9(0x09)  右电机实时转速 高半字（RPM）
+     10(0x0A)  右电机实时转速 低半字（RPM）
+     11(0x0B)  右电机错误状态
+     16(0x10)  右电机换向次数 高半字（编码器/位置，32 位）
+     17(0x11)  右电机换向次数 低半字
+     20(0x14)  左电机实时转速 高半字（RPM）
+     21(0x15)  左电机实时转速 低半字（RPM）
+     22(0x16)  左电机错误状态
+     27(0x1B)  左电机换向次数 高半字（编码器/位置，32 位）
+     28(0x1C)  左电机换向次数 低半字
+
+   换向次数说明：电机每 60 度电气角度换向一次，换算成机械角度为
+   60 / 极对数（度）。即：机械角度(度) = 换向次数 * 60 / pole_pairs。
+
+4. 速度映射与限速
+   * 线速度 -> 轮子转速：RPM = v * 60 / (pi * D)，v 单位 m/s，D 为轮径(m)。
+   * 本车为低速车，默认最高线速度 0.5 m/s（可在配置中修改）。
+
+5. 本节点不再像旧版那样“按两台从机(地址 1/2)分别驱动”，因为 MSSD-60EHB_2D
+   是一台双电机驱动器，左右电机共用同一个从站地址（默认 1）。
+"""
+
 import math
+import threading
+import time
+
+import rclpy
+from pymodbus.client import ModbusSerialClient
+from rclpy.node import Node
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Bool, Float64MultiArray
+from df_joy_bridge.msg import JoyState
 
 
-class motor_status:
-	Oac_TF = False      # 掉电标志  7
-	Cgp_TF = False      # 堵转保护标志  3
-	Cgi_TF = False      # 堵转标志  2
-	Ens_TF = False      # 使能状态  0
+# 寄存器地址常量（十进制）。所有地址均来自 MSSD-60EHB_2D 协议 V2.0。
 
-# ----  MODBUS 寄存器地址 ----
-REG_ENABLE = 56        # 使能电机
-REG_QUICK_STOP = 56/60    # 急停电机
-REG_SET_L_V = 0xFC    # 设置L电机速度
-REG_HOME_TRIGGER = 0x9A  # 设置R电机速度
-14-15# L电机实时转速
-9-10# R电机实时转速
-REG_HOME_STATUS = 0x3B   # 读取L编码器
-REG_STATUS = 0x3A        # 读取R编码器
+# ---- 实时状态（读，0x03）----
+REG_READ_BASE = 0x0009          # 本节点一次连续读取的起始寄存器(9)
+REG_READ_COUNT = 20             # 连续读取 9~28 共 20 个寄存器
+# 在连续读取结果中的索引（相对于 REG_READ_BASE）：
+IDX_R_SPEED_H = 0               # 9   右电机实时转速 高半字
+IDX_R_SPEED_L = 1               # 10  右电机实时转速 低半字
+IDX_R_ERROR = 2                 # 11  右电机错误状态
+IDX_R_POS_H = 7                 # 16  右电机换向次数 高半字
+IDX_R_POS_L = 8                 # 17  右电机换向次数 低半字
+IDX_L_SPEED_H = 11              # 20  左电机实时转速 高半字
+IDX_L_SPEED_L = 12              # 21  左电机实时转速 低半字
+IDX_L_ERROR = 13                # 22  左电机错误状态
+IDX_L_POS_H = 18                # 27  左电机换向次数 高半字
+IDX_L_POS_L = 19                # 28  左电机换向次数 低半字
 
+# ---- 电机控制（写）----
+REG_STOP_1 = 0x0038             # 56  停止寄存器1（右电机）
+REG_TARGET_1_H = 0x0039         # 57  设定目标启动寄存器1 高半字（右电机）
+REG_TARGET_1_L = 0x003A         # 58  设定目标启动寄存器1 低半字（右电机）
+REG_STOP_2 = 0x003C             # 60  停止寄存器2（左电机）
+REG_TARGET_2_H = 0x003D         # 61  设定目标启动寄存器2 高半字（左电机）
+REG_TARGET_2_L = 0x003E         # 62  设定目标启动寄存器2 低半字（左电机）
+REG_FACTORY_RESET = 0x0040      # 64  参数恢复出厂命令
+REG_TEST_CTRL = 0x0041          # 65  测试控制（相序学习）
+
+# ---- 停止寄存器取值 ----
+STOP_NORMAL = 0                 # 正常停止（恢复运行/复位用）
+STOP_EMERGENCY = 1              # 紧急停止
+STOP_FREE = 2                   # 自由停止
+
+# ---- 错误状态码（寄存器 11/22）说明，用于日志显示 ----
+ERROR_TEXT = {
+    0: "无错误",
+    1: "堵转停机",
+    2: "相序未学习",
+    3: "相位异常",
+    4: "相线过流",
+    5: "母线过流",
+    6: "电压过高",
+    7: "电压过低",
+    8: "相位学习异常",
+    9: "过载异常",
+    10: "485通信中断",
+    11: "CAN通讯中断",
+    12: "母线电压过高",
+    13: "温度过高",
+    14: "无感启动失败",
+    15: "相电流异常",
+    16: "上电大电流异常",
+    17: "同步超差异常",
+    18: "硬件异常",
+}
 
 
 class channel_MBRTU(Node):
-	"""MB线程控制器 """
-	def __init__(self):
-		super().__init__("df_motor_control")
-
-		# ---- 声明可配置参数 ----
-		self.dir_data = 0.0
-		self.declare_parameter('port', '/dev/ttyUSB2')
-		self.declare_parameter('wheel_track', 0.39)
-		self.declare_parameter('wheel_diameter_m', 0.125)
-		self.port = self.get_parameter('port').value
-		self.wheel_track = self.get_parameter('wheel_track').value
-		self.wheel_diameter_m = self.get_parameter('wheel_diameter_m').value
-		# self.wheel_diameter_m = 0.125
-
-		# 此处需要修改，上一个话题的发布是50HZ，对于点击驱动来说，相应不了这么高的频率
-		# 由于发布频率的问题，需要修改为转速当变化时才进行写入，并且为int类型，下位机采用modbus协议，只能是int
-		# =====================订阅后轮速度====================================
-		# 订阅后轮速度节点，用来数据计算
-		self.sub = self.create_subscription(Float64MultiArray,
-		                                    '/hardware/rear_wheel_cmd',
-		                                    self.rear_wheel_callback,
-		                                    10)
-		# =====================订阅关节状态====================================
-		# 订阅前轮转向发布的关节状态话题，然后将此话题补充速度内容，并且再发布
-		self.sub_front_steer = self.create_subscription(JointState,
-		                                             '/hardware/steer_feedback',
-		                                             self.front_steer_callback,
-		                                             10
-		                                             )
-		# ---- 将订阅的关节状态，补充速度数据，然后发布----
-		self._joint_feedback_pub = self.create_publisher(
-			JointState, '/hardware/joint_feedback', 10)
-
-
-
-		# =====================话题====================================
-		# ---- 订阅前轮转向指令 front_steering_cmd 前轮转向 话题 ----
-		self.subscription = self.create_subscription(Float64MultiArray,
-		                                             '/hardware/front_steering_cmd',
-		                                             self.front_steer_callback,
-		                                             10
-		                                             )
-		# 订阅前轮转向试试角度
-		self.sub_dir = self.create_subscription(Float64,
-		                                        '/df_dir_rt',
-		                                        self.dir_listener_callback_, 10)
-
-		self.angle = 0.0
-
-		# 创建电机实时状态的发布对象
-		# 此窗台用来反馈给阿克曼控制器
-		self.cmd_vel_rt_pub = self.create_publisher(JointState,
-		                                            '/hardware/joint_feedback',
-		                                            10)
-
-		self.motor_status_data = JointState()
-		# self.motor_status_data.velocity = [0.0,0.0]
-
-		self.get_logger().info(f'485电机控制初始化') 
-		# 此端口只能采用同步，modbusTCP支持异步
-		self.write_speed_dir = False  	# 写入速度和方向标志
-		self.write_quick_stop = False 	# 写入急停标志
-		self.write_clear_err = False  	# 写入清楚错误标志
-		self.write_enable = True       # 写入使能标志
-
-
-		self.l_speed = 0.0
-		self.r_speed = 0.0
-		self.write_l_speed = 0.0 # 左轮写入速度
-		self.write_r_speed = 0.0 # 右轮写入速度
-		self.last_l_speed_ = 0  # 值改变寄存器
-		self.last_r_speed_ = 0  # 值改变寄存器
-
-		self.l_dir = 0      # 左轮子前后旋转方向
-		self.r_dir = 0      # 右轮子前后旋转方向
-		
-		# self.port = port
-		self.slave1 = 1
-		self.slave2 = 2
-
-		self.v_l_rt = 0
-		self.v_r_rt = 0
-
-		# self.rt_l_speed_rad = 0.0
-		# self.rt_l_speed_rad = 0.0
-
-		# self.wheel_diameter_m = 0.125   # 后轮驱动轮的直径
-		#self.wheel_track = 0.39   # 后轮轮距
-
-		self._stop_event = threading.Event()
-		self._lock = threading.Lock()
-		self.commn_thread =  threading.Thread(target=self.loop_start_, daemon=True)
-		# self.comm_thread.start()
-		# 创建实例对象
-		# self.logger = logging.getLogger(__name__)
-		self.result_info2 = None  # 结果信息
-		self.result_info = None    # 结果信息
-		self.power_status_info = None    # 结果信息
-		self.moto_status_l = motor_status()
-		self.moto_status_r = motor_status()
-		
-		# self.timeout = timeout
-		self.ser = None
-		self.state = "close"
-		self.running = False  # 线程运行控制标志
-		self.close_port()
-		# 实例对象
-		self.open_port()
-
-	def front_steer_callback(self, msg: Float64MultiArray):
-		"""收到手柄数据时自动调用"""
-		# ---------- 用户需在此处实现角度计算 ----------
-		# self.get_logger().info(f'转向角度{msg.data[0]}  {msg.data[1]}')
-		self.angle = (msg.data[0] + msg.data[1]) / 2
-
-	def pub_joint_status(self):
-
-		self.motor_status_data.header.stamp = self.get_clock().now().to_msg()
-
-		self.motor_status_data.name = ['lh_joint', 'lq_joint', 'rh_joint', 'rq_joint']
-		# --- 位置 (position) 单位：弧度 (rad) ---
-		# 后轮：位置通常不重要，里程计只用速度，但为了完整性设为 0.0
-		# 前轮：转向角，正值表示左转（根据 REP-103）
-		self.motor_status_data.position = [0.0, self.angle, 0.0, self.angle]
-		# --- 速度 (velocity) 单位：弧度/秒 (rad/s) ---
-		# 后轮：分别赋值左右轮的实际转速
-		# 前轮：转向速度通常不用于里程计，设为 0.0
-
-		self.motor_status_data.velocity = [self.v_l_rt , 0.0, self.v_r_rt, 0.0]  # 转向速度设为0
-
-		self.cmd_vel_rt_pub.publish(self.motor_status_data)
-
-	def linear_velocity_to_rpm(self,v) -> float:
-		"""
-		将线速度（m/s）转换为轮子转速（rpm）（单位：米）
-
-		参数:
-			v (float): 线速度，单位 m/s
-			wheel_diameter_m (float): 轮子直径，单位 米，默认 0.125 m（125 mm）
-
-		返回:
-			float: 转速，单位 rpm
-
-		公式:
-			n = v * 30 / (π * r) ，其中 r = wheel_diameter_m / 2
-		"""
-		if self.wheel_diameter_m <= 0:
-			raise ValueError("轮子直径必须大于 0")
-
-		radius_m = self.wheel_diameter_m / 2.0
-		rpm = v * 30.0 / (math.pi * radius_m)
-		return rpm
-
-	@staticmethod
-	def rad_per_sec_to_rpm(omega_rad_s: float) -> float:
-		"""
-		将角速度（rad/s）转换为电机转速（RPM，转每分钟）
-
-		参数:
-			omega_rad_s (float): 角速度，单位 rad/s
-
-		返回:
-			float: 转速，单位 RPM
-
-		公式:
-			RPM = omega * 60 / (2 * π)
-		"""
-		rpm = omega_rad_s * 60.0 / (2.0 * math.pi)
-		return rpm
-	@staticmethod
-	def rpm_to_rad_per_sec(rpm: float) -> float:
-		"""
-		将电机转速（RPM，转每分钟）转换为角速度（rad/s）
-
-		参数:
-			rpm (float): 电机转速，单位 RPM
-
-		返回:
-			float: 角速度，单位 rad/s
-
-		公式:
-			omega = rpm * 2 * π / 60
-		"""
-		omega_rad_s = rpm * 2.0 * math.pi / 60.0
-		return omega_rad_s
-
-	def rpm_to_linear_velocity(self,n) -> float:
-		"""
-		将轮子转速（rpm）转换为线速度（m/s）（单位：米）
-
-		参数:
-			n (float): 转速，单位 rpm
-			wheel_diameter_m (float): 轮子直径，单位 米，默认 0.125 m（125 mm）
-
-		返回:
-			float: 线速度，单位 m/s
-
-		公式:
-			v = n * π * r / 30 ，其中 r = wheel_diameter_m / 2
-		"""
-		if self.wheel_diameter_m <= 0:
-			raise ValueError("轮子直径必须大于 0")
-
-		radius_m = self.wheel_diameter_m / 2.0
-		v = n * math.pi * radius_m / 30.0
-		return v
-	def listener_callback_(self, msg:Float64MultiArray):
-		"""
-		接收阿克曼控制器的硬件驱动信号,此方法应该用来去控制电机进行旋转
-		"""
-		# self.get_logger().info(f'{msg.data[0]}  {msg.data[1]}')
-		pass
-
-	def dir_listener_callback_(self, msg:Float64):
-		"""前轮实时转向角"""
-		# 接收到的是角度，需要将角度转换成弧度
-		self.dir_data = (msg.data / 180 ) * math.pi
-
-	def rear_wheel_callback(self, msg:Float64MultiArray):
-		"""
-		接受手柄消息，响应手柄按键，将参数写入到电机驱动中
-		"""
-		# self.get_logger().info(f'{msg.data[0]}  {msg.data[1]}')
-		# self.l_speed = self.linear_velocity_to_rpm(msg.data[0])
-		
-		# self.r_speed = self.linear_velocity_to_rpm(msg.data[1])
-		# 速度反馈使用下发指令
-		# self.v_l_rt = msg.data[1]
-		# self.v_r_rt = msg.data[0]
-
-		self.l_speed = self.rad_per_sec_to_rpm(msg.data[1])
-		self.r_speed = self.rad_per_sec_to_rpm(msg.data[0])
-		# self.get_logger().info(f'---L  {self.l_speed}  ----R  {self.r_speed}')
-		self.pub_joint_status()   # 发布关节速度
-		self.write_l_speed = int(abs(self.l_speed))
-		self.write_r_speed = int(abs(self.r_speed))
-
-		if self.l_speed >= 0 and self.r_speed >=0 :
-			if self.last_l_speed_ != self.write_l_speed or self.last_r_speed_ != self.write_r_speed:
-				self.l_dir = 1      # 左轮子前后旋转方向
-				self.r_dir = 0      # 右轮子前后旋转方向
-
-				self.last_l_speed_ = self.write_l_speed
-				self.last_r_speed_ = self.write_r_speed
-				self.write_speed_dir = True
-				# self.get_logger().info(f'写入速度:方向 + ')
-		if self.l_speed < 0 and self.r_speed < 0:
-			if self.last_l_speed_ != self.write_l_speed or self.last_r_speed_ != self.write_r_speed:
-				self.l_dir = 0      # 左轮子前后旋转方向
-				self.r_dir = 1      # 右轮子前后旋转方向
-
-				self.last_l_speed_ = self.write_l_speed
-				self.last_r_speed_ = self.write_r_speed
-				self.write_speed_dir = True
-				# self.get_logger().info(f'写入速度 :方向 - ')
-
-
-	def pull_wheel(self,v_l,v_r,l_dir,r_dir):
-		"""前进，正转  00/01 分别代表CW/CCW"""
-		self.ser.write_registers(
-			address=0xF6,  # 寄存器起始地址（0x00F3）
-			values=[(l_dir * 256) + 100, v_l, 0],
-			device_id=self.slave2  # 从机地址
-		)
-		self.ser.write_registers(
-			address=0xF6,  # 寄存器起始地址（0x00F3）
-			values=[(r_dir * 256) + 100, v_r, 0],
-			device_id=self.slave1  # 从机地址
-		)
-
-	"""打开端口"""
-	def open_port(self):
-		"""打开串口"""
-		if self.state != "close":
-			self.get_logger().info(f'端口已关闭') 
-			return False
-		try:
-			self.ser = ModbusSerialClient(port=self.port, baudrate=115200,
-											 parity="N",
-											 stopbits=1,
-											 bytesize=8) # 最后一项必须关闭，否则报错strict=False
-			self.ser.connect()
-			# 添加串口就绪等待
-			time.sleep(0.1)
-			self.state = "open"
-			self.get_logger().info(f'✈️ 1端口打开成功')
-			# 启动线程
-			# self.start()
-			self.get_logger().info(f'✈️ 2电机进入待机状态')
-			self.get_logger().info(f'✈️ 3初始状态使能')
-			self.enable_motor(flag=True)
-			self.get_logger().info(f'✈️ 4使能完成')
-			self.get_logger().info(f'✈️ 5设置初始速度0,初始方向')
-			self.pull_wheel(v_l=0,v_r = 0,l_dir=0,r_dir=0)
-			time.sleep(0.1)
-			self.get_logger().info(f'✈️ 6启动电机控制线程')
-			self.commn_thread.start()
-			return True
-		except Exception as e:
-			self.get_logger().info(f"打开控制错误，错误信息⬇️")
-			self.get_logger().info(f"error: {e}") 
-			return False
-		
-
-
-	"""关闭端口"""
-	def close_port(self):
-		"""关闭串口"""
-		if self.state == "close":
-			self.get_logger().info(f"端口关闭")
-			return
-
-		try:
-			if self.ser:
-				self.ser.close()
-				self.stop()
-			self.get_logger().info(f"Port {self.port} closed")
-		except Exception as e:
-			self.get_logger().info(f"Error while closing port: {e}")
-		finally:
-			self.stop()
-			self.ser = None
-			self.state = "close"
-
-	"""停止通讯"""
-	def stop(self):
-		"""停止线程运行"""
-		self.running = False
-		self.state = "close"
-
-	"""线程循环读取"""
-	def loop_start_(self):
-		"""线程主运行函数"""
-		self.running = True
-		while not self._stop_event.is_set():
-			try:
-				if self._stop_event.wait(timeout=0.05):
-					self.get_logger().info(f'收到停止信号，立即跳出循环')  
-					break
-				try:
-					# self.get_logger().info(f'电机循环')
-					result_pos_l,result_rpm_l, moto_status_l_l,moto_status_r_r = self.read_slave_data(slave=self.slave1)
-					result_pos_r,result_rpm_r, moto_status_l_r,moto_status_r_r = self.read_slave_data(slave=self.slave2)
-					# self.get_logger().info(f'循环读取中{result_pos_l}{result_pos_r}')
-					# 通过转速rpm计算线速度，并且添加到twist中，进行发布
-					self.v_l_rt =  round(self.rpm_to_rad_per_sec(result_rpm_l),1)
-					self.v_r_rt  =  round(self.rpm_to_rad_per_sec(result_rpm_r) * -1,1)
-
-					# self.v_l_rt =  round(self.rpm_to_rad_per_sec(self.write_l_speed),1)
-					# self.v_r_rt  =  round(self.rpm_to_rad_per_sec(self.write_r_speed) * -1,1)
-
-					# self.get_logger().info(f'速度L{v_l} 速度R{v_r} ') 
-					# 线速度
-					# self.motor_status_data.linear.x  = (v_l + v_r) / 2.0
-					# 角速度
-					# self.motor_status_data.linear.z  = (v_l - v_r) / self.wheel_track
-
-					# 1. 快速拷贝状态（持锁时间极短）
-					if self.write_speed_dir :
-						self.pull_wheel(v_l=self.write_l_speed,v_r = self.write_r_speed,l_dir=self.l_dir,r_dir=self.r_dir)
-						# self.get_logger().info(f'L速度{self.write_l_speed} L速度{self.write_r_speed}')
-						self.write_speed_dir = False
-					# 写入使能或者急停
-					if self.write_quick_stop :
-						self.get_logger().info(f'电机-急停')
-						self.quick_stop()
-						self.write_quick_stop = False
-					# 清除错误
-					if self.write_clear_err :
-						self.get_logger().info(f'电机-清除错误')
-						self.clear_error()
-						self.write_clear_err = False
-					# 写入使能
-					if self.write_enable :
-						self.get_logger().info(f'电机-写入使能')
-						self.enable_motor(flag=True)
-						self.write_enable = False       # 写入使能标志
-
-				except:
-					pass
-			except Exception as e:
-				self.get_logger().info(f'链接已断开')
-			# time.sleep(0.05)
-	
-		self.close_port()
-		print(f"端口 线程 已停止")
-
-	def read_slave_data(self, slave):
-		"""
-		实时转速
-		实时角度
-		使能状态
-		"""
-		# ------------------实时位置角度
-		pos_status = self.ser.read_holding_registers(address=54, count=3, device_id=slave)
-		pos_registers = pos_status.registers
-		result_pos = self.convert_motor_position(pos_registers)
-		# print(f"{slave}实时位置角度 {result_pos}")
-		# ------------------实时转速
-		rpm_status = self.ser.read_holding_registers(address=53, count=2, device_id=slave)
-		rpm_registers = rpm_status.registers
-		if rpm_registers[0] == 0:
-			result_rpm = rpm_registers[1]
-		else:
-			result_rpm = -rpm_registers[1]
-		#  print(f"{slave}实时速度 {result_rpm}")
-		#  # ------------------使能状态
-		motor_status = self.ser.read_holding_registers(address=58, count=1, device_id=slave)
-		motor_registers = motor_status.registers
-		result_status = self.word_to_bits(motor_registers[0])
-		if slave == 1:
-			if result_status[0] == 1:
-				self.moto_status_l.Ens_TF = True
-			else:
-				self.moto_status_l.Ens_TF = False
-			if result_status[2] == 1:
-				self.moto_status_l.Cgi_TF = True
-			else:
-				self.moto_status_l.Cgi_TF = False
-			if result_status[3] == 1:
-				self.moto_status_l.Cgp_TF = True
-			else:
-				self.moto_status_l.Cgp_TF = False
-			if result_status[7] == 1:
-				self.moto_status_l.Oac_TF = True
-			else:
-				self.moto_status_l.Oac_TF = False
-		else:
-			if result_status[0] == 1:
-				self.moto_status_r.Ens_TF = True
-			else:
-				self.moto_status_r.Ens_TF = False
-			if result_status[2] == 1:
-				self.moto_status_r.Cgi_TF = True
-			else:
-				self.moto_status_r.Cgi_TF = False
-			if result_status[3] == 1:
-				self.moto_status_r.Cgp_TF = True
-			else:
-				self.moto_status_r.Cgp_TF = False
-			if result_status[7] == 1:
-				self.moto_status_r.Oac_TF = True
-			else:
-				self.moto_status_r.Oac_TF = False
-		return result_pos,result_rpm, self.moto_status_l,self.moto_status_r
-		# print(self.moto_status.Ens_TF)
-
-	@staticmethod
-	def word_to_bits(value):
-		"""
-		将 0-65535 的整数转换为 16 位的二进制列表 (高位在前)
-		"""
-		# 1. format(value, '016b') 将数字转为 16 位二进制字符串 (如 '0000000000000001')
-		# 2. list(...) 将字符串拆分为字符列表
-		# 3. [int(x) for x in ...] 将字符 '0'/'1' 转为整数 0/1
-		return [int(x) for x in format(value, '016b')]
-
-	@staticmethod
-	def convert_motor_position(data_list):
-		"""
-		将电机返回的原始列表数据转换为角度值
-		:param data_list: 包含 [符号, 高字节, 低字节] 的列表
-		:return: 浮点型角度值
-		"""
-		if len(data_list) < 3:
-			return None
-
-		# 1. 获取符号 (0=正, 1=负)
-		sign_byte = data_list[0]
-		multiplier = -1 if sign_byte == 1 else 1
-
-		# 2. 获取位置数值 (高位 * 256 + 低位)
-		high_byte = data_list[1]
-		low_byte = data_list[2]
-		raw_position = (high_byte << 8) | low_byte  # 等同于 high_byte * 256 + low_byte
-
-		# 3. 应用公式: (位置 * 360) / 65536
-		angle = (raw_position * 360.0) / 65536.0
-
-		# 4. 加上符号并返回
-		final_angle = angle * multiplier
-		return round(final_angle, 1)  # 保留一位小数、
-
-	@staticmethod
-	def int32_to_two_words(value):
-		"""
-		将32位整数拆分为两个16位的字
-		value: 32位有符号整数
-		返回: (low_word, high_word)
-		"""
-		# 确保值在32位有符号整数范围内
-		if value < -2 ** 31 or value > 2 ** 31 - 1:
-			raise ValueError("值超出32位有符号整数范围")
-
-		# 转换为无符号32位表示
-		if value < 0:
-			value = (1 << 32) + value
-
-		# 提取低16位和高16位
-		low_word = value & 0xFFFF
-		high_word = (value >> 16) & 0xFFFF
-		result_data = [int(low_word), int(high_word)]
-		return result_data
-
-	def enable_motor(self,flag):
-		"""
-		控制电机使能/不使能
-		:param client: ModbusRTU客户端实例
-		:param slave_addr: 从机地址（电机地址）
-		:param enable_state: 使能状态（0x00=不使能，0x01=使能）
-		:return: 是否成功（True/False）
-		"""
-		try:
-			# ModbusSerialClient.write_register()
-			if flag == True:
-				self.ser.write_registers(
-					address=0xF3,  # 寄存器起始地址（0x00F3）
-					values=[(171 * 256) + 1,0],
-					device_id=self.slave1  # 从机地址
-				)
-				self.ser.write_registers(
-					address=0xF3,  # 寄存器起始地址（0x00F3）
-					values=[(171 * 256) + 1, 0],
-					device_id=self.slave2  # 从机地址
-				)
-			else:
-				self.ser.write_registers(
-					address=0xF3,  # 寄存器起始地址（0x00F3）
-					values=[(171 * 256) + 0, 0],
-					device_id=self.slave1  # 从机地址
-				)
-				self.ser.write_registers(
-					address=0xF3,  # 寄存器起始地址（0x00F3）
-					values=[(171 * 256) + 0, 0],
-					device_id=self.slave2  # 从机地址
-				)
-		except Exception as e:
-			self.get_logger().info(f"写入使能错误")
-			self.get_logger().info(f"error: {e}") 
-			return False
-
-	# ==================== 定位指令 =====================================
-	"""清楚错误"""
-	def clear_error(self):
-		"""清除堵转/过热/过流保护"""
-		self.ser.write_register(
-			address=14,  # 寄存器起始地址（0x00F3）
-			value=1,
-			device_id=self.slave1  # 从机地址
-		)
-		self.ser.write_register(
-			address=14,  # 寄存器起始地址（0x00F3）
-			value=1,
-			device_id=self.slave2  # 从机地址
-		)
-	"""急停"""
-	def quick_stop(self):
-		"""急停"""
-		# ModbusSerialClient.write
-		self.ser.write_register(address=0xFE, value=38912, device_id=self.slave1)
-		self.ser.write_register(address=0xFE, value=38912, device_id=self.slave2)
-
-	def destroy_node(self):
-		"""重写节点销毁方法，确保线程被正确停止"""
-		self.get_logger().info("正在停止电机控制线程...")
-		self.enable_motor(False)
-		self._stop_event.set()      # 发送停止信号
-		self.close_port()
-		super().destroy_node()
+    """MSSD-60EHB_2D 后轮双电机驱动节点（MODBUS-RTU 通信线程）。"""
+    # 初始化
+    def __init__(self):
+        super().__init__("df_motor_control")
+
+        # ---------- 声明可配置参数（默认值见 config/motor_control.yaml）----------
+        # 串口参数：必须与驱动器的 485 参数保持一致。
+        self.declare_parameter("port", "/dev/ttyUSB3")
+        self.declare_parameter("baudrate", 9600)          # 驱动器出厂默认 9600
+        self.declare_parameter("parity", "N")             # N=无校验, E=偶校验, O=奇校验
+        self.declare_parameter("stopbits", 1)
+        self.declare_parameter("bytesize", 8)
+        self.declare_parameter("timeout", 0.2)            # 单次 Modbus 应答超时(秒)
+        self.declare_parameter("slave_id", 1)             # 驱动器从站地址(出厂默认 1)
+
+        # 车辆/轮子参数
+        self.declare_parameter("wheel_track", 0.39)       # 后轮轮距(m)
+        self.declare_parameter("wheel_diameter_m", 0.125) # 后轮直径(m)
+        self.declare_parameter("max_linear_velocity", 0.5)  # 最高线速度(m/s)，低速车限速
+
+        # 速度指令单位：'rad_s' = 轮子角速度(rad/s)，'m_s' = 轮子线速度(m/s)
+        self.declare_parameter("input_unit", "rad_s")
+
+        # 编码器换算：电机极对数（定子南北磁极对数 = 磁极数的一半）。
+        # 换向次数 -> 机械角度：angle_deg = count * 60 / pole_pairs
+        self.declare_parameter("pole_pairs", 4)
+
+        # 电机旋转方向校正：若某侧电机实际转向与指令相反，改为 -1.0。
+        self.declare_parameter("left_dir_sign", 1.0)
+        self.declare_parameter("right_dir_sign", 1.0)
+
+        # 通信循环/反馈发布频率(Hz)
+        self.declare_parameter("loop_rate", 20.0)
+
+        # 读取参数
+        self.port = str(self.get_parameter("port").value)
+        self.baudrate = int(self.get_parameter("baudrate").value)
+        self.parity = str(self.get_parameter("parity").value)
+        self.stopbits = int(self.get_parameter("stopbits").value)
+        self.bytesize = int(self.get_parameter("bytesize").value)
+        self.timeout = float(self.get_parameter("timeout").value)
+        self.slave_id = int(self.get_parameter("slave_id").value)
+
+        self.wheel_track = float(self.get_parameter("wheel_track").value)
+        self.wheel_diameter_m = float(self.get_parameter("wheel_diameter_m").value)
+        self.max_linear_velocity = float(self.get_parameter("max_linear_velocity").value)
+        self.input_unit = str(self.get_parameter("input_unit").value).lower()
+        self.pole_pairs = int(self.get_parameter("pole_pairs").value)
+        self.left_dir_sign = float(self.get_parameter("left_dir_sign").value)
+        self.right_dir_sign = float(self.get_parameter("right_dir_sign").value)
+        self.loop_rate = float(self.get_parameter("loop_rate").value)
+
+        # 由最高线速度推导最高轮速(RPM)，用于限幅。
+        self.max_rpm = abs(self.linear_velocity_to_rpm(self.max_linear_velocity))
+        if self.wheel_diameter_m <= 0.0:
+            raise ValueError("wheel_diameter_m 必须大于 0")
+        if self.pole_pairs <= 0:
+            raise ValueError("pole_pairs 必须大于 0")
+
+        # # ---------- 订阅：后轮速度指令 ----------
+        # # 消息格式 Float64MultiArray，data = [右轮, 左轮]，单位由 input_unit 决定。
+        # self.sub_rear = self.create_subscription(
+        #     Float64MultiArray,
+        #     "/hardware/rear_wheel_cmd",
+        #     self.rear_wheel_callback,
+        #     10,
+        # )
+        #
+        # # ---------- 订阅：前轮转向反馈（JointState）----------
+        # # 用于把前轮转向角合并进后轮发布的 JointState 中，方便里程计/控制器使用。
+        # self.sub_steer = self.create_subscription(
+        #     JointState,
+        #     "/hardware/steer_feedback",
+        #     self.steer_feedback_callback,
+        #     10,
+        # )
+
+        # ---------- 订阅：急停 / 复位（Bool，True 触发一次）----------
+        # 远端可通过这两个话题触发急停/复位，也可以直接调用方法。
+        # self.sub_estop = self.create_subscription(
+        #     Bool, "~/emergency_stop", self.emergency_stop_callback, 10)
+        # self.sub_reset = self.create_subscription(
+        #     Bool, "~/reset", self.reset_callback, 10)
+
+        # ---------- 发布：合并后的关节反馈 ----------
+        # name 顺序：[左后, 左前, 右后, 右前]，与 front_steering 节点保持一致。
+        # self.joint_feedback_pub = self.create_publisher(
+        #     JointState, "/hardware/joint_feedback", 10)
+
+
+        # 手柄没有急停，轻推左摇杆，即可从NAV导航中抢车，摇杆默认回中速度为0，即可停车
+        self._calib_sub = self.create_subscription(
+            JoyState, '/joy_state', self._joy_state_callback, 10)
+        # ---------- 状态变量 ----------
+        self.steer_angle = 0.0                # 前轮转向角(rad)，来自 steer_feedback
+
+        # 目标速度（RPM，已含方向校正与限幅）
+        self.target_l_rpm = 0
+        self.target_r_rpm = 0
+        self._speed_dirty = False             # 速度指令变化标志（变化时才写，降低总线负载）
+        self._last_write_l_rpm = None
+        self._last_write_r_rpm = None
+
+        # 命令/状态标志（只在回调或公开方法里“置位”，真正的 Modbus 读写由通信线程统一执行）
+        self._estop_requested = False        # 请求急停一次
+        self._reset_requested = False        # 请求复位一次
+        self._startup_requested = False      # 请求上电初始化（正常停止 + 速度清零）
+        self._shutdown_requested = False     # 请求最终停车并退出线程
+
+        # 实时反馈（由通信线程更新，_publish_feedback 定时读取）
+        self._lock = threading.Lock()
+        self.l_rpm = 0.0
+        self.r_rpm = 0.0
+        self.l_error = 0
+        self.r_error = 0
+        self.l_pos_counts = 0                 # 左轮换向次数原始值
+        self.r_pos_counts = 0                 # 右轮换向次数原始值
+        self.l_pos_rad = 0.0                  # 左轮累计机械角度(rad)
+        self.r_pos_rad = 0.0                  # 右轮累计机械角度(rad)
+        self._last_l_counts = None
+        self._last_r_counts = None
+        self._last_logged_l_error = 0         # 用于只在错误状态变化时打印日志
+        self._last_logged_r_error = 0
+
+        # ---------- 串口 / 线程 ----------
+        self.ser = None
+        self._stop_event = threading.Event()
+        self._comm_thread = threading.Thread(target=self._comm_loop, daemon=True)
+        self._thread_done = threading.Event()  # 通信线程退出完成信号
+
+        # 定时发布反馈（在 ROS2 执行器线程内发布，避免跨线程直接 publish）
+        # self._feedback_timer = self.create_timer(
+        #     1.0 / max(self.loop_rate, 1.0), self._publish_feedback)
+
+        self.get_logger().info("MSSD-60EHB_2D 后轮驱动节点初始化")
+        self._open_port()
+
+
+    # 速度换算工具
+    def linear_velocity_to_rpm(self, v: float) -> float:
+        """
+        线速度(m/s) -> 轮子转速(RPM)。
+        公式：RPM = v * 60 / (pi * D)，D 为轮径(m)。
+        """
+        radius_m = self.wheel_diameter_m / 2.0
+        return v * 30.0 / (math.pi * radius_m)
+
+    @staticmethod
+    def rad_per_sec_to_rpm(omega_rad_s: float) -> float:
+        """角速度(rad/s) -> 转速(RPM)。RPM = omega * 60 / (2*pi)。"""
+        return omega_rad_s * 60.0 / (2.0 * math.pi)
+
+    @staticmethod
+    def rpm_to_rad_per_sec(rpm: float) -> float:
+        """转速(RPM) -> 角速度(rad/s)。omega = rpm * 2*pi / 60。"""
+        return rpm * 2.0 * math.pi / 60.0
+
+    def rpm_to_linear_velocity(self, rpm: float) -> float:
+        """轮子转速(RPM) -> 线速度(m/s)。"""
+        radius_m = self.wheel_diameter_m / 2.0
+        return rpm * math.pi * radius_m / 30.0
+
+
+    # 32 位有符号整数 <-> 两个 16 位寄存器（高半字在前）
+
+    @staticmethod
+    def _s32_to_words(value: int):
+        """把 -2^31 ~ 2^31-1 的有符号整数拆成 [高半字, 低半字]。"""
+        value = int(value)
+        value &= 0xFFFFFFFF          # 转成无符号 32 位表示（补码）
+        high = (value >> 16) & 0xFFFF
+        low = value & 0xFFFF
+        return [high, low]
+
+    @staticmethod
+    def _words_to_s32(high: int, low: int) -> int:
+        """把 [高半字, 低半字] 合成有符号 32 位整数。"""
+        raw = ((int(high) & 0xFFFF) << 16) | (int(low) & 0xFFFF)
+        if raw >= 0x80000000:
+            raw -= 0x100000000
+        return raw
+
+    # 串口管理
+
+    def _open_port(self) -> bool:
+        """打开 RS485 串口并启动通信线程。"""
+        if self.ser is not None:
+            self.get_logger().info("串口已打开，跳过重复打开")
+            return False
+        try:
+            self.ser = ModbusSerialClient(
+                port=self.port,
+                baudrate=self.baudrate,
+                parity=self.parity,
+                stopbits=self.stopbits,
+                bytesize=self.bytesize,
+                timeout=self.timeout,
+            )
+            if not self.ser.connect():
+                self.get_logger().error(f"串口 {self.port} 连接失败")
+                self.ser = None
+                return False
+
+            self.get_logger().info(f"串口 {self.port} 打开成功，"
+                                   f"波特率 {self.baudrate}，从站地址 {self.slave_id}")
+            # 上电初始化（正常停止 + 速度清零）也统一由通信线程执行，
+            # 这里只置标志，不直接做任何 Modbus 读写。
+            self._startup_requested = True
+            self._comm_thread.start()
+            return True
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().error(f"打开串口异常: {exc}")
+            self.ser = None
+            return False
+
+    def close_port(self):
+        """停止通信线程并关闭串口。"""
+        self._stop_event.set()
+        # 先等通信线程退出（线程内可能还有未完成的 Modbus 读写），再关闭串口。
+        if self._comm_thread.is_alive():
+            self._comm_thread.join(timeout=1.0)
+        if self.ser is not None:
+            try:
+                self.ser.close()
+            except Exception:  # noqa: BLE001
+                pass
+            self.ser = None
+        self.get_logger().info("串口已关闭")
+
+
+    # 底层 Modbus 写操作
+
+    def _write_speed(self, left_rpm: int, right_rpm: int) -> bool:
+        """
+        写入左右电机速度目标（RPM）。
+        使用 0x10 写多寄存器：每个电机速度占“高半字 + 低半字”共 2 个寄存器。
+        正值=正转(前进)，负值=反转(后退)，0=正常停止。
+        注意：本方法只能由通信线程调用（所有 Modbus 读写都集中在线程内）。
+        """
+        if self.ser is None:
+            return False
+        ok = True
+        try:
+            # 右电机：起始地址 0x0039，写 [高半字, 低半字]
+            resp_r = self.ser.write_registers(
+                address=REG_TARGET_1_H,
+                values=self._s32_to_words(right_rpm),
+                device_id=self.slave_id,
+            )
+            if resp_r is None or resp_r.isError():
+                ok = False
+
+            # 左电机：起始地址 0x003D，写 [高半字, 低半字]
+            resp_l = self.ser.write_registers(
+                address=REG_TARGET_2_H,
+                values=self._s32_to_words(left_rpm),
+                device_id=self.slave_id,
+            )
+            if resp_l is None or resp_l.isError():
+                ok = False
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().error(f"写入速度失败: {exc}")
+            return False
+        return ok
+
+    def _write_stop(self, left_stop: int, right_stop: int) -> bool:
+        """
+        写入左右电机停止寄存器（0x06 写单寄存器）。
+        left_stop / right_stop 取值：0=正常停止 1=紧急停止 2=自由停止。
+        注意：停止寄存器1=右电机，停止寄存器2=左电机。
+        注意：本方法只能由通信线程调用（所有 Modbus 读写都集中在线程内）。
+        """
+        if self.ser is None:
+            return False
+        ok = True
+        try:
+            resp_r = self.ser.write_register(
+                address=REG_STOP_1, value=int(right_stop), device_id=self.slave_id)
+            if resp_r is None or resp_r.isError():
+                ok = False
+            resp_l = self.ser.write_register(
+                address=REG_STOP_2, value=int(left_stop), device_id=self.slave_id)
+            if resp_l is None or resp_l.isError():
+                ok = False
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().error(f"写入停止寄存器失败: {exc}")
+            return False
+        return ok
+
+
+    # 公开控制接口
+
+    def quick_stop(self):
+        """
+        请求急停。只置状态标志，实际通讯（写停止寄存器）由通信线程统一执行。
+        """
+        self._estop_requested = True
+
+    def reset(self):
+        """
+        请求复位。只置状态标志，实际通讯（正常停止 + 速度清零）由通信线程统一执行。
+        用于解除急停、清除停止状态并回到可运行状态。
+        """
+        self._reset_requested = True
+
+    def read_encoder_counts(self):
+        """
+        读取左右轮编码器值（换向次数，32 位有符号计数器）。
+        返回 dict：{"left_counts":..., "right_counts":...,
+                    "left_rad":..., "right_rad":...}
+        """
+        with self._lock:
+            return {
+                "left_counts": self.l_pos_counts,
+                "right_counts": self.r_pos_counts,
+                "left_rad": self.l_pos_rad,
+                "right_rad": self.r_pos_rad,
+            }
+
+    def read_wheel_rpm(self):
+        """读取左右轮实时转速(RPM)。返回 dict：{"left_rpm":..., "right_rpm":...}"""
+        with self._lock:
+            return {"left_rpm": self.l_rpm, "right_rpm": self.r_rpm}
+
+
+    # ROS2 回调
+    def _joy_state_callback(self, msg: JoyState):
+        """遥控触发的各个通道的数值回调"""
+        raw_channels = [
+            msg.ch01, msg.ch02, msg.ch03, msg.ch04, msg.ch05,
+            msg.ch06, msg.ch07, msg.ch08, msg.ch09, msg.ch10,
+        ]
+        switch06 = msg.switch06
+        switch07 = msg.switch07
+        self._current_target_pulses = raw_channels[0]
+        # 值改变发送一次标志位
+        # if self._pos_last_ != self._current_target_pulses and self._pos_change_trig == False:
+        #     self._pos_change_trig = True
+        #     self._pos_last_ = self._current_target_pulses
+        #     self.get_logger().info(f'目标位置={raw_channels[0]}')
+        # if not switch06 :
+        #     self._button_preess_status = False
+        # if switch06 and not self._button_preess_status:
+        #     # 开始标定
+        #     # self._start_calibration()
+        #     # 航向修正标定（按钮触发 -> 保持航向 -> 自动保存归中补偿）
+        #     # self._finalize_calibration()
+        #     # 先不进行标定
+        #     self.get_logger().info(f'6 标定开关打开={switch06}')
+        #     self._button_preess_status = True
+
+    def rear_wheel_callback(self, msg: Float64MultiArray):
+        """
+        接收后轮速度指令。
+        msg.data = [右轮, 左轮]；单位由参数 input_unit 决定：
+          * 'rad_s'：轮子角速度(rad/s) —— 与阿克曼控制器常规输出一致（默认）
+          * 'm_s'  ：轮子线速度(m/s)
+        内部统一换算成 RPM，并做方向校正与最高线速度限幅。
+        """
+        if len(msg.data) < 2:
+            self.get_logger().warn("rear_wheel_cmd 数据长度不足 2，忽略")
+            return
+
+        right_in = float(msg.data[0])
+        left_in = float(msg.data[1])
+
+        # 单位换算 -> 轮子转速(RPM)
+        if self.input_unit == "m_s":
+            right_rpm = self.linear_velocity_to_rpm(right_in)
+            left_rpm = self.linear_velocity_to_rpm(left_in)
+        else:  # 默认 'rad_s'
+            right_rpm = self.rad_per_sec_to_rpm(right_in)
+            left_rpm = self.rad_per_sec_to_rpm(left_in)
+
+        # 方向校正（电机实际安装方向可能相反，通过配置 ±1 校正）
+        right_rpm *= self.right_dir_sign
+        left_rpm *= self.left_dir_sign
+
+        # 最高线速度限幅（低速车，默认 0.5 m/s）
+        right_rpm = max(-self.max_rpm, min(self.max_rpm, right_rpm))
+        left_rpm = max(-self.max_rpm, min(self.max_rpm, left_rpm))
+
+        # 取整（寄存器只能写整数 RPM），并仅在变化时置写入标志
+        right_rpm = int(round(right_rpm))
+        left_rpm = int(round(left_rpm))
+
+        with self._lock:
+            changed = (right_rpm != self.target_r_rpm
+                       or left_rpm != self.target_l_rpm)
+            self.target_r_rpm = right_rpm
+            self.target_l_rpm = left_rpm
+            if changed:
+                self._speed_dirty = True
+
+    def steer_feedback_callback(self, msg: JointState):
+        """接收前轮转向反馈，记录前轮转向角(rad)。"""
+        try:
+            # front_steering 发布的 JointState: position=[左后, 左前, 右后, 右前]
+            # 前轮转向角在 position[1]（左前）与 position[3]（右前）。
+            if msg.position:
+                self.steer_angle = float(msg.position[1])
+        except Exception:  # noqa: BLE001
+            pass
+
+    def emergency_stop_callback(self, msg: Bool):
+        """急停话题回调：收到 True 时请求一次急停。"""
+        if msg.data:
+            self._estop_requested = True
+
+    def reset_callback(self, msg: Bool):
+        """复位话题回调：收到 True 时请求一次复位。"""
+        if msg.data:
+            self._reset_requested = True
+
+    def _publish_feedback(self):
+        """定时发布合并后的关节反馈（供里程计/阿克曼控制器使用）。"""
+        with self._lock:
+            # 反馈转速 -> 角速度(rad/s)，并应用方向校正使其与物理方向一致。
+            v_l = self.rpm_to_rad_per_sec(self.l_rpm) * self.left_dir_sign
+            v_r = self.rpm_to_rad_per_sec(self.r_rpm) * self.right_dir_sign
+            pos_l = self.l_pos_rad
+            pos_r = self.r_pos_rad
+            steer = self.steer_angle
+
+        joint = JointState()
+        joint.header.stamp = self.get_clock().now().to_msg()
+        joint.name = ["lh_joint", "lq_joint", "rh_joint", "rq_joint"]
+        # position: [左后角度, 左前转向角, 右后角度, 右前转向角]
+        joint.position = [pos_l, steer, pos_r, steer]
+        # velocity: [左后轮角速度, 左前轮0, 右后轮角速度, 右前轮0]
+        joint.velocity = [v_l, 0.0, v_r, 0.0]
+        self.joint_feedback_pub.publish(joint)
+
+    # 通信线程
+    def _comm_loop(self):
+        """串口通信主循环：本线程是唯一进行 Modbus 读写的线程。"""
+        interval = 1.0 / max(self.loop_rate, 1.0)
+        log_counter = 0
+        while not self._stop_event.is_set():
+            # 退出前处理最终停车
+            if self._shutdown_requested:
+                break
+            try:
+                self._process_commands()
+                self._read_feedback()
+                # 状态日志更新部分，后期运行可删除
+            except Exception as exc:  # noqa: BLE001
+                self.get_logger().warn(f"通信循环异常: {exc}")
+
+            self._stop_event.wait(interval)
+
+        # 线程退出前的最后一次停车（仍在本线程内完成，避免外部直接操作串口）。
+        if self._shutdown_requested:
+            try:
+                self._write_speed(0, 0)
+                self._write_stop(STOP_NORMAL, STOP_NORMAL)
+            except Exception:  # noqa: BLE001
+                pass
+        self._thread_done.set()
+
+    def _process_commands(self):
+        """按优先级处理命令标志，所有 Modbus 写入都在本方法（通信线程）内完成。"""
+        # 1) 急停优先
+        if self._estop_requested:
+            self._estop_requested = False
+            self._do_quick_stop()
+            return
+        # 2) 复位（复位会同时清零速度）
+        if self._reset_requested:
+            self._reset_requested = False
+            self._do_reset()
+            return
+        # 3) 上电初始化（正常停止 + 速度清零）
+        if self._startup_requested:
+            self._startup_requested = False
+            self._write_stop(STOP_NORMAL, STOP_NORMAL)
+            self._write_speed(0, 0)
+            self.get_logger().info("上电初始化：停止电机，目标速度清零")
+            return
+        # 4) 速度指令变化时写入（降低总线负载）
+
+        if self._speed_dirty:
+            if self._write_speed(self.target_l_rpm, self.target_r_rpm):
+                self._last_write_l_rpm = self.target_l_rpm
+                self._last_write_r_rpm = self.target_r_rpm
+                self._speed_dirty = False
+
+    def _do_quick_stop(self):
+        """急停实际写入（仅通信线程调用）。"""
+        ok = self._write_stop(STOP_EMERGENCY, STOP_EMERGENCY)
+        if ok:
+            self.get_logger().warn("已执行急停（左右电机紧急停止）")
+
+    def _do_reset(self):
+        """复位实际写入（仅通信线程调用）。"""
+        ok_stop = self._write_stop(STOP_NORMAL, STOP_NORMAL)
+        ok_speed = self._write_speed(0, 0)
+        if ok_stop and ok_speed:
+            with self._lock:
+                self.target_l_rpm = 0
+                self.target_r_rpm = 0
+                self._last_write_l_rpm = 0
+                self._last_write_r_rpm = 0
+                self._speed_dirty = False
+            self.get_logger().info("已复位：恢复正常停止，目标速度清零")
+
+    def _read_feedback(self):
+        """
+        一次连续读取 0x0009~0x001C 共 20 个寄存器，
+        解析左右电机的实时转速、错误状态、换向次数(编码器)。
+        """
+        if self.ser is None:
+            return
+        try:
+            resp = self.ser.read_holding_registers(
+                address=REG_READ_BASE, count=REG_READ_COUNT,
+                device_id=self.slave_id)
+            if resp is None or resp.isError():
+                return
+            regs = resp.registers
+            if len(regs) < REG_READ_COUNT:
+                return
+
+            # 右电机
+            r_rpm = self._words_to_s32(regs[IDX_R_SPEED_H], regs[IDX_R_SPEED_L])
+            r_error = int(regs[IDX_R_ERROR])
+            r_counts = self._words_to_s32(regs[IDX_R_POS_H], regs[IDX_R_POS_L])
+            # self.get_logger().INFO(f"右电机: {r_rpm}{r_error}{r_counts}")
+            # 左电机
+            l_rpm = self._words_to_s32(regs[IDX_L_SPEED_H], regs[IDX_L_SPEED_L])
+            l_error = int(regs[IDX_L_ERROR])
+            l_counts = self._words_to_s32(regs[IDX_L_POS_H], regs[IDX_L_POS_L])
+            self.get_logger().INFO(f"左电机: {l_rpm}{l_error}{l_counts}--右电机: {r_rpm}{r_error}{r_counts}")
+
+            with self._lock:
+                self.r_rpm = float(r_rpm)
+                self.l_rpm = float(l_rpm)
+                self.r_error = r_error
+                self.l_error = l_error
+
+                # 累计机械角度（换向次数 -> 弧度），并做 32 位溢出解卷绕。
+                self.r_pos_counts = r_counts
+                self.l_pos_counts = l_counts
+                if self._last_r_counts is not None:
+                    self.r_pos_rad += self._commutation_delta_to_rad(
+                        r_counts - self._last_r_counts)
+                if self._last_l_counts is not None:
+                    self.l_pos_rad += self._commutation_delta_to_rad(
+                        l_counts - self._last_l_counts)
+                self._last_r_counts = r_counts
+                self._last_l_counts = l_counts
+
+                # 错误状态变化时打印日志，便于排查堵转/过流等问题（避免每周期刷屏）。
+                if r_error != 0 and r_error != self._last_logged_r_error:
+                    self.get_logger().warn(
+                        f"右电机错误: {ERROR_TEXT.get(r_error, r_error)}")
+                    self._last_logged_r_error = r_error
+                if l_error != 0 and l_error != self._last_logged_l_error:
+                    self.get_logger().warn(
+                        f"左电机错误: {ERROR_TEXT.get(l_error, l_error)}")
+                    self._last_logged_l_error = l_error
+                if r_error == 0:
+                    self._last_logged_r_error = 0
+                if l_error == 0:
+                    self._last_logged_l_error = 0
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().debug(f"读取反馈失败: {exc}")
+
+    def _commutation_delta_to_rad(self, delta_counts: int) -> float:
+        """
+        换向次数增量 -> 机械角度增量(rad)。
+        每 1 次换向 = 60 度电气角 = 60/pole_pairs 度机械角。
+        """
+        return delta_counts * (math.pi / 3.0) / self.pole_pairs
+
+    # =====================================================================
+    # 节点销毁
+    # =====================================================================
+    def destroy_node(self):
+        """重写节点销毁方法，确保线程与串口被正确释放。"""
+        self.get_logger().info("正在停止电机控制线程...")
+        # 通过标志请求通信线程做最后一次停车（所有通讯都在线程内完成）。
+        self._shutdown_requested = True
+        # 等待通信线程完成最终停车并退出（最多约 1 秒）。
+        if self._comm_thread.is_alive():
+            self._thread_done.wait(timeout=1.0)
+        self.close_port()
+        super().destroy_node()
+
 
 def main(args=None):
-	# 创建串口线程 (替换为实际串口名)
-	rclpy.init(args=args)                                   # ROS2 Python接口初始化
-	ser_thread = channel_MBRTU()              # 创建ROS2节点对象并进行初始化
-	try:
-		rclpy.spin(ser_thread)
-	except KeyboardInterrupt:
-		pass
-	finally:
-		ser_thread.destroy_node()
-		rclpy.shutdown()
+    """节点入口。"""
+    rclpy.init(args=args)
+    node = channel_MBRTU()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
+
+if __name__ == "__main__":
+    main()

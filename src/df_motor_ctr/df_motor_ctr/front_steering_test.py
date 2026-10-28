@@ -243,7 +243,7 @@ class FrontSteeringNode(Node):
         # =====================手柄节点=============================================
         # 订阅手柄的桥接节点，50HZ频率，不再使用事件触发····
         self._calib_sub = self.create_subscription(
-           JoyState, '/joy_state', self._calibration_bool_callback, 10)
+           JoyState, '/joy_state', self._joy_state_callback, 10)
 
         # # ---- 标定完成检测定时器（20Hz） ----
         # self._calib_timer = self.create_timer(0.05, self._calibration_tick)
@@ -760,9 +760,9 @@ class FrontSteeringNode(Node):
         self._last_heading_correction_deg = correction
         return correction
 
-    # ==================遥控触发 保存航向修正量 ================================================
-    def _calibration_bool_callback(self, msg: JoyState):
-
+    # ==================遥控触发 各个通道的数值回调更新 ================================================
+    def _joy_state_callback(self, msg: JoyState):
+        """遥控触发的各个通道的数值回调"""
         raw_channels = [
             msg.ch01, msg.ch02, msg.ch03, msg.ch04, msg.ch05,
             msg.ch06, msg.ch07, msg.ch08, msg.ch09, msg.ch10,
@@ -786,6 +786,7 @@ class FrontSteeringNode(Node):
             self.get_logger().info(f'6 标定开关打开={switch06}')
             self._button_preess_status = True
 
+    # ==================遥控触发 保存航向修正量 ================================================
     def _finalize_calibration(self):
         if self._imu_fault or not self._imu_received:
             self.get_logger().warn('航向修正失败：IMU 不可用，未保存补偿')
