@@ -144,7 +144,7 @@ class channel_MBRTU(Node):
 
         # ---------- 声明可配置参数（默认值见 config/motor_control.yaml）----------
         # 串口参数：必须与驱动器的 485 参数保持一致。
-        self.declare_parameter("port", "/dev/ttyUSB3")
+        self.declare_parameter("port", "/dev/ttyUSB2")
         self.declare_parameter("baudrate", 9600)          # 驱动器出厂默认 9600
         self.declare_parameter("parity", "N")             # N=无校验, E=偶校验, O=奇校验
         self.declare_parameter("stopbits", 1)
@@ -581,7 +581,7 @@ class channel_MBRTU(Node):
                 break
             try:
                 self._process_commands()
-                self._read_feedback()
+                # self._read_feedback()
                 # 状态日志更新部分，后期运行可删除
             except Exception as exc:  # noqa: BLE001
                 self.get_logger().warn(f"通信循环异常: {exc}")
