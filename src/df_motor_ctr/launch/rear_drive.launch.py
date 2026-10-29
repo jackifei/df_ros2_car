@@ -16,7 +16,7 @@ def generate_launch_description():
         Node(
             package='df_motor_ctr',
             executable='motor_ctr',
-            name='df_motor_ctr',
+            name='df_motor_ctr',  # 节点名称
             output='screen',
             parameters=[config_path_dir],
         )

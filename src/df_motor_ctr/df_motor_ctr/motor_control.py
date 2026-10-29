@@ -140,7 +140,7 @@ class channel_MBRTU(Node):
     """MSSD-60EHB_2D 后轮双电机驱动节点（MODBUS-RTU 通信线程）。"""
     # 初始化
     def __init__(self):
-        super().__init__("df_motor_control")
+        super().__init__("df_motor_ctr")
 
         # ---------- 声明可配置参数（默认值见 config/motor_control.yaml）----------
         # 串口参数：必须与驱动器的 485 参数保持一致。
@@ -236,7 +236,15 @@ class channel_MBRTU(Node):
         # 目标速度（RPM，已含方向校正与限幅）
         self.target_l_rpm = 0
         self.target_r_rpm = 0
+
+        self.target_linespeed_l = 0.0    # 写入的目标线速度
+        self.target_linespeed_r = 0.0   # 写入的目标线速度
+
+        self.last_target_linespeed_l = 0.0  # 最后一次写入的线速度
+        self.last_target_linespeed_r= 0.0    # 最后一次写入的线速度
+
         self._speed_dirty = False             # 速度指令变化标志（变化时才写，降低总线负载）
+
         self._last_write_l_rpm = None
         self._last_write_r_rpm = None
 
@@ -471,12 +479,30 @@ class channel_MBRTU(Node):
         ]
         switch06 = msg.switch06
         switch07 = msg.switch07
-        self._current_target_pulses = raw_channels[0]
+
+        # 3通道是前进后退指令，这里是线速度
+        self.target_linespeed_l = raw_channels[2]
+        self.target_linespeed_r = -raw_channels[2]
+        # self.last_target_linespeed_l
+        # self.last_target_linespeed_r
         # 值改变发送一次标志位
-        # if self._pos_last_ != self._current_target_pulses and self._pos_change_trig == False:
-        #     self._pos_change_trig = True
-        #     self._pos_last_ = self._current_target_pulses
-        #     self.get_logger().info(f'目标位置={raw_channels[0]}')
+
+        if self.last_target_linespeed_l != self.target_linespeed_l or self.last_target_linespeed_r != self.target_linespeed_r :
+            if self._speed_dirty == False:
+                # 包含方向
+
+                left_rpm = self.linear_velocity_to_rpm(self.target_linespeed_l)
+                right_rpm = self.linear_velocity_to_rpm(self.target_linespeed_r)
+
+                self.target_l_rpm = max(-self.max_rpm, min(self.max_rpm, left_rpm))
+                self.target_r_rpm = max(-self.max_rpm, min(self.max_rpm, right_rpm))
+
+                self.last_target_linespeed_l = self.target_linespeed_l
+                self.last_target_linespeed_r = self.target_linespeed_r
+
+                self._speed_dirty = True
+                self.get_logger().info(f'回调 左轮转速={self.target_l_rpm} 右轮转速={self.target_r_rpm}')
+
         # if not switch06 :
         #     self._button_preess_status = False
         # if switch06 and not self._button_preess_status:
@@ -614,7 +640,8 @@ class channel_MBRTU(Node):
             self._startup_requested = False
             self._write_stop(STOP_NORMAL, STOP_NORMAL)
             self._write_speed(0, 0)
-            self.get_logger().info("上电初始化：停止电机，目标速度清零")
+            self.get_logger().info("上电初始化：停止电机，目标速度设置为0")
+            self.get_logger().info(f"{self.max_rpm}")
             return
         # 4) 速度指令变化时写入（降低总线负载）
 
@@ -622,6 +649,7 @@ class channel_MBRTU(Node):
             if self._write_speed(self.target_l_rpm, self.target_r_rpm):
                 self._last_write_l_rpm = self.target_l_rpm
                 self._last_write_r_rpm = self.target_r_rpm
+                self.get_logger().info(f"左轮速度：{self._last_write_l_rpm}右轮速度：{self._last_write_r_rpm}")
                 self._speed_dirty = False
 
     def _do_quick_stop(self):
