@@ -494,8 +494,8 @@ class channel_MBRTU(Node):
                 left_rpm = self.linear_velocity_to_rpm(self.target_linespeed_l)
                 right_rpm = self.linear_velocity_to_rpm(self.target_linespeed_r)
 
-                self.target_l_rpm = max(-self.max_rpm, min(self.max_rpm, left_rpm))
-                self.target_r_rpm = max(-self.max_rpm, min(self.max_rpm, right_rpm))
+                self.target_l_rpm = -max(-self.max_rpm, min(self.max_rpm, left_rpm))
+                self.target_r_rpm = -max(-self.max_rpm, min(self.max_rpm, right_rpm))
 
                 self.last_target_linespeed_l = self.target_linespeed_l
                 self.last_target_linespeed_r = self.target_linespeed_r
