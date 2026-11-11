@@ -77,6 +77,7 @@ class JoyBridgeNode(Node):
         self.get_logger().info(
             f'开关通道固定为 6/7，判定阈值 {self._switch_threshold} us')
 
+
     # 修改点：映射规则（每个通道独立映射）
     def _map_channel(self, key, raw):
         """把指定通道的原始值按该通道自己的区间线性映射并限幅。"""

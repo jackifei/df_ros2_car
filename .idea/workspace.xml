@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="9a9133e0-1172-4fee-ad77-a99bfcfbf683" name="更改" comment="" />
+    <list default="true" id="9a9133e0-1172-4fee-ad77-a99bfcfbf683" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/df_ros2_car.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/df_ros2_car.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/df_joy_bridge/config/bridge_config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_joy_bridge/config/bridge_config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/df_joy_bridge/df_joy_bridge/joy_bridge.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_joy_bridge/df_joy_bridge/joy_bridge.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/front_steering_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/front_steering_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/motor_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/motor_control.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -17,22 +24,22 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "jackifei"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;jackifei&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/jackifei/df_ros2_car.git",
-    "accountId": "10e662be-e4df-4850-aee7-388be1b265d0"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/jackifei/df_ros2_car.git&quot;,
+    &quot;accountId&quot;: &quot;10e662be-e4df-4850-aee7-388be1b265d0&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 4,
-  "fromUser": false
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4,
+  &quot;fromUser&quot;: false
+}</component>
   <component name="ProjectId" id="3LxhoUvQm66d7ObR21iCV0vZz6l" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -49,6 +56,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "RosCarJazzy24DF",
+    "nodejs_package_manager_path": "npm",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -113,7 +121,6 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-PY-261.27258.51" />
         <option value="bundled-python-sdk-84eaadda3698-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.27258.51" />
       </set>
     </attachedChunks>
@@ -126,6 +133,7 @@
       <option name="presentableId" value="Default" />
       <updated>1794401800390</updated>
       <workItem from="1794401801393" duration="1990000" />
+      <workItem from="1794409314823" duration="1675000" />
     </task>
     <servers />
   </component>
