@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="python312pack" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="python312pack" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (df_ros2_car)" project-jdk-type="Python SDK" />
 </project>

@@ -66,14 +66,34 @@ class FrontSteeringNode(Node):
         self.declare_parameter('timeout', 0.5)
         self.declare_parameter('slave_id', 1)
 
+        # ==================== 车辆参数 ====================
+        self.declare_parameter('wheelbase', 0.75)      # 前后轴距
+        self.declare_parameter('track_width', 0.75)    # 轮距
+        self.declare_parameter('wheel_diameter_m', 0.255)
+        self.declare_parameter('max_linear_velocity', 0.5)
 
-        # self.declare_parameter('steer_table_motordeg', [0.0, 400.0, 800.0, 1200.0, 1600.0, 2000.0, 2400.0])  # 电机角度
-        # self.declare_parameter('steer_table_motordeg', [-30.0, -20.0, -10.0, 0.0, 10.0, 20.0, 30.0])  # 车轮角度
+        self.declare_parameter('max_steer_angle', 0.5236)
+        self.declare_parameter('max_steer_angle_deg', 30.0)
 
+        self.declare_parameter('min_speed', 0.15)  # 低于此线速度进入低速保护
+        self.declare_parameter('steer_eps', 0.02)  # 转向意图死区
+        self.declare_parameter('low_speed_hysteresis_ratio', 1.5)  # 退出低速保护的倍率
+
+        self.declare_parameter('max_delta_step_deg', 10.0)  # 转向意图死区
+
+
+        self.declare_parameter('steer_sign', 1.0)  #
+        self.declare_parameter('min_pulse', 0)  #
+        self.declare_parameter('max_pulse', 3000)  #
+
+        # ==================== 转向角映射表 ====================
+        self.declare_parameter('steer_table_motordeg', [400.0,   800.0, 1200.0, 1600.0, 2000.0, 2400.0, 2800.0])  # 电机角度
+        self.declare_parameter('steer_table_wheeldeg', [-30.0, -20.0, -10.0, 0.0,      10.0, 20.0,     30.0])  # 车轮角度
 
         # ==================== 位置 / 归中补偿参数 ====================
         # center_pos: 车轮回正时对应的电机绝对位置（脉冲数）。零点=左转向极限。
-        self.declare_parameter('center_pos', 1600)
+        self.declare_parameter('center_pos', -1600)
+
         # 每度转向角对应的电机脉冲数。默认 16 细分：3200 脉冲/圈 => 3200/360。
         # 若转向机构有减速比，按实车标定后修改。
         self.declare_parameter('pulses_per_degree', 3200.0 / 360.0)
@@ -110,15 +130,39 @@ class FrontSteeringNode(Node):
         self.declare_parameter('yaw_median_window', 9)
         self.declare_parameter('yaw_lowpass_alpha', 0.2)
 
+
+        # ==================== 创建参数属性 ====================
         # ---- 读取串口参数 ----
         self._port = self.get_parameter('port').value
         self._baudrate = self.get_parameter('baudrate').value
         self._timeout = self.get_parameter('timeout').value
         self._slave_id = int(self.get_parameter('slave_id').value)
 
+        # 车辆参数
+        self.wheelbase = self.get_parameter('wheelbase').value       # 前后轴距
+        self.track_width = self.get_parameter('track_width').value   # 轮距
+
+        self.wheel_diameter_m = self.get_parameter('wheel_diameter_m').value
+        self.max_linear_velocity = self.get_parameter('max_linear_velocity').value
+
+        self.max_steer_angle = self.get_parameter('max_steer_angle').value
+        self.max_steer_angle_deg = self.get_parameter('max_steer_angle_deg').value
+
+        self.min_speed = self.get_parameter('min_speed').value
+        self.low_speed_hysteresis_ratio = self.get_parameter('low_speed_hysteresis_ratio').value
+        self.steer_eps = self.get_parameter('steer_eps').value
+
+        self.max_delta_step_deg = self.get_parameter('max_delta_step_deg').value
+
+        self.steer_sign = self.get_parameter('steer_sign').value
+        self.min_pulse = self.get_parameter('min_pulse').value
+        self.max_pulse = self.get_parameter('max_pulse').value
+
         # 读取转向角度映射表
-        # self.steer_table_motordeg = self.get_parameter('steer_table_motordeg').value
-        # self.steer_table_wheeldeg = self.get_parameter('steer_table_wheeldeg').value
+        self.steer_table_motordeg = self.get_parameter('steer_table_motordeg').value
+        self.steer_table_wheeldeg = self.get_parameter('steer_table_wheeldeg').value
+        # self.steer_pulse_table = self.get_parameter('steer_pulse_table').value
+
 
         # ---- 读取位置参数 ----
         self.center_pos = int(self.get_parameter('center_pos').value)
@@ -165,6 +209,10 @@ class FrontSteeringNode(Node):
         self._yaw_lowpass_alpha = float(self.get_parameter('yaw_lowpass_alpha').value)
 
         # ---- 运行状态 ----
+        # 标志
+        self._low_speed = False
+        self.current_delta = 0.0
+
         self.ser = None
         self.state = 'close'
         self.running = False
@@ -292,7 +340,6 @@ class FrontSteeringNode(Node):
 
         self.current_delta = delta
         return delta
-
 
     # 串口打开 / 关闭··
     def open_port(self):
@@ -496,7 +543,6 @@ class FrontSteeringNode(Node):
         # self._real_pos_valid = True
 
     # ==================== 循环线程 =====================================
-    # 通讯线程：回零状态机 + 状态读取
     def _loop_start(self):
         self.running = True
         log_counter = 0
@@ -801,7 +847,7 @@ class FrontSteeringNode(Node):
         self._last_heading_correction_deg = correction
         return correction
 
-    # ==================遥控触发 各个通道的数值回调更新 ================================================
+    # ==================遥控的回调函数  各个通道的数值回调更新 ================================================
     def _joy_state_callback(self, msg: JoyState):
         """遥控触发的各个通道的数值回调"""
         raw_channels = [
@@ -810,7 +856,17 @@ class FrontSteeringNode(Node):
         ]
         switch06 = msg.switch06
         switch07 = msg.switch07
-        self._current_target_pulses = raw_channels[0]
+
+
+        linear_x = raw_channels[2]
+        angular_z = raw_channels[0]
+        # 根据线速度和角速度以及车架计算前轮转向角
+        delta  = self.cmd_vel_to_delta_(linear_x=linear_x,angular_z=angular_z)
+        pulse = self.delta_to_pulse(delta)
+
+        self.get_logger().info(f'线速度={linear_x:.3F} 角速度={angular_z:.3F} 转向角={delta:.3F} 脉冲数={pulse}')
+
+        self._current_target_pulses = -pulse
         # 值改变发送一次标志位
         if self._pos_last_ != self._current_target_pulses and self._pos_change_trig == False:
             self._pos_change_trig = True
@@ -827,19 +883,23 @@ class FrontSteeringNode(Node):
             self.get_logger().info(f'6 标定开关打开={switch06}')
             self._button_preess_status = True
 
+    # ==================twist转换成前轮转向角 ================================================
     """线速度限制角速度，互相锁定速度，方便原地掉头等"""
-    def cmd_vel_to_delta(self, linear_x, angular_z):
+    def cmd_vel_to_delta_(self, linear_x, angular_z):
+        """对输入的线速度和角速度进行限幅调整"""
         v, w = float(linear_x), float(angular_z)
-
+        # 查看是否有非法数据，none，或者其他数据
         if not (math.isfinite(v) and math.isfinite(w)):
             return self.current_delta
 
         # 1) 低速保护（带滞回）
+        # 当线速度低于最小速度的时候，进行低速保护，当恢复速度的时候，需要大于低速的1.5倍
         if abs(v) < self.min_speed:
             self._low_speed = True
         elif abs(v) > self.min_speed * 1.5:
             self._low_speed = False
 
+        # 线速度过低标志，对角速度进行限制
         if self._low_speed:
             delta = 0.0 if abs(w) < self.steer_eps else self.current_delta
             delta = max(-self.max_steer_angle,
@@ -848,8 +908,11 @@ class FrontSteeringNode(Node):
             return delta
 
         # 2) 按 v 动态缩放角速度（在 atan 之前）
+        # 最小转弯半径
         Rmin = self.wheelbase / math.tan(self.max_steer_angle)
+        # 随线速度变化的允许的最大角速度
         w_max = abs(v) / Rmin
+        # 限幅后实际生效的角速度，指令想转100，但是max不够100，所有有此限幅
         w_eff = max(-w_max, min(w_max, w))
 
         # 3) 计算等效转角（天然不超限）
@@ -866,6 +929,58 @@ class FrontSteeringNode(Node):
 
         self.current_delta = delta
         return delta
+    # 将转向角弧度转换成前轮电机转向脉冲
+    # 核心 2：delta（rad） -> 步进电机绝对脉冲
+    def delta_to_pulse(self, delta_rad: float) -> int:
+        """
+        前轮等效转角 delta_rad（rad）→ 步进电机绝对目标脉冲。
+        表值直接作为绝对脉冲输出，再做软限位。
+        """
+        if not math.isfinite(delta_rad):
+            # 非法值：回零位（0° 对应值）
+            return self._interp_pulse(0.0)
+
+        # 弧度 → 角度，并按机械限位 clamp
+        deg = math.degrees(delta_rad)
+        deg = max(-self.max_steer_angle_deg,
+                  min(self.max_steer_angle_deg, deg))
+
+        # 查表 → 绝对脉冲
+        target = self._interp_pulse(deg)
+
+        # 软限位兜底
+        target = max(self.min_pulse, min(self.max_pulse, target))
+        return target
+    def _interp_pulse(self, deg: float) -> int:
+        """
+        根据前轮角度 deg（deg），在映射表上插值得到电机目标位置（脉冲）。
+        表外 clamp 到端点，不外推。
+        """
+        xs = self.steer_table_wheeldeg  # 前轮角度，升序
+        ys = self.steer_table_motordeg  # 电机目标值，单调递增
+
+        # 表外：夹到端点，不外推
+        if deg <= xs[0]:
+            return int(round(ys[0]))
+        if deg >= xs[-1]:
+            return int(round(ys[-1]))
+
+        # 表内：找区间做线性插值
+        for i in range(len(xs) - 1):
+            d0, d1 = xs[i], xs[i + 1]
+            if d0 <= deg <= d1:
+                if d1 == d0:
+                    return int(round(ys[i]))
+                t = (deg - d0) / (d1 - d0)
+                return int(round(ys[i] + t * (ys[i + 1] - ys[i])))
+
+        return int(round(ys[-1]))
+
+    # ==================================================================
+
+
+
+
 
     # ==================遥控触发 保存航向修正量 ================================================
     def _finalize_calibration(self):
@@ -922,9 +1037,7 @@ class FrontSteeringNode(Node):
         except Exception as exc:  # noqa: BLE001
             self.get_logger().error(f'保存归中补偿失败: {exc}')
 
-    # ==================================================================
     # 节点销毁
-    # ==================================================================
     def destroy_node(self):
         self.get_logger().info('正在停止前轮转向节点...')
         self._req_enable = False

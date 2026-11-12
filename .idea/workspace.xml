@@ -3,11 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="9a9133e0-1172-4fee-ad77-a99bfcfbf683" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/df_ros2_car.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/df_ros2_car.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/df_joy_bridge/config/bridge_config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_joy_bridge/config/bridge_config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/df_joy_bridge/df_joy_bridge/joy_bridge.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_joy_bridge/df_joy_bridge/joy_bridge.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/config/front_steering.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/config/front_steering.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/front_steering_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/front_steering_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/motor_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/motor_control.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,21 +44,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.twist_steer_.executor": "Run",
-    "Python.测试程序.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "RosCarJazzy24DF",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.twist_steer_.executor&quot;: &quot;Run&quot;,
+    &quot;Python.测试程序.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;RosCarJazzy24DF&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Python.测试程序">
     <configuration name="测试程序" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="df_ros2_car" />
@@ -139,6 +138,14 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="优化" />
+    <MESSAGE value="." />
+    <MESSAGE value="优化航向滤波" />
+    <MESSAGE value="Merge remote-tracking branch 'origin/roscontrol' into roscontrol&#10;&#10;# Conflicts:&#10;#&#9;src/df_motor_ctr/config/wheel_dir_pwm.yaml&#10;#&#9;src/df_motor_ctr/df_motor_ctr/wheel_dir_pwm.py" />
+    <MESSAGE value=".&#10;&#10;修改readme" />
+    <option name="LAST_COMMIT_MESSAGE" value=".&#10;&#10;修改readme" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
