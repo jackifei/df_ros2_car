@@ -253,6 +253,46 @@ class FrontSteeringNode(Node):
         self.close_port()
         self.open_port()
 
+    """线速度与角速度限幅"""
+    def cmd_vel_to_delta(self, linear_x, angular_z):
+        v, w = float(linear_x), float(angular_z)
+
+        if not (math.isfinite(v) and math.isfinite(w)):
+            return self.current_delta
+
+        # 1) 低速保护（带滞回）
+        if abs(v) < self.min_speed:
+            self._low_speed = True
+        elif abs(v) > self.min_speed * 1.5:
+            self._low_speed = False
+
+        if self._low_speed:
+            delta = 0.0 if abs(w) < self.steer_eps else self.current_delta
+            delta = max(-self.max_steer_angle,
+                        min(self.max_steer_angle, delta))
+            self.current_delta = delta
+            return delta
+
+        # 2) 按 v 动态缩放角速度（在 atan 之前）
+        Rmin = self.wheelbase / math.tan(self.max_steer_angle)
+        w_max = abs(v) / Rmin
+        w_eff = max(-w_max, min(w_max, w))
+
+        # 3) 计算等效转角（天然不超限）
+        delta = math.atan(self.wheelbase * w_eff / v)
+
+        # 4) 兜底限幅
+        delta = max(-self.max_steer_angle,
+                    min(self.max_steer_angle, delta))
+
+        # 5) 变化率限制（步进电机友好）
+        max_step = math.radians(10.0)  # 按控制周期调，10° 比较温和
+        delta = max(self.current_delta - max_step,
+                    min(self.current_delta + max_step, delta))
+
+        self.current_delta = delta
+        return delta
+
 
     # 串口打开 / 关闭··
     def open_port(self):
@@ -455,6 +495,7 @@ class FrontSteeringNode(Node):
         self._real_steering_rad = math.radians(steering_deg)
         # self._real_pos_valid = True
 
+    # ==================== 循环线程 =====================================
     # 通讯线程：回零状态机 + 状态读取
     def _loop_start(self):
         self.running = True
@@ -785,6 +826,46 @@ class FrontSteeringNode(Node):
             # 先不进行标定
             self.get_logger().info(f'6 标定开关打开={switch06}')
             self._button_preess_status = True
+
+    """线速度限制角速度，互相锁定速度，方便原地掉头等"""
+    def cmd_vel_to_delta(self, linear_x, angular_z):
+        v, w = float(linear_x), float(angular_z)
+
+        if not (math.isfinite(v) and math.isfinite(w)):
+            return self.current_delta
+
+        # 1) 低速保护（带滞回）
+        if abs(v) < self.min_speed:
+            self._low_speed = True
+        elif abs(v) > self.min_speed * 1.5:
+            self._low_speed = False
+
+        if self._low_speed:
+            delta = 0.0 if abs(w) < self.steer_eps else self.current_delta
+            delta = max(-self.max_steer_angle,
+                        min(self.max_steer_angle, delta))
+            self.current_delta = delta
+            return delta
+
+        # 2) 按 v 动态缩放角速度（在 atan 之前）
+        Rmin = self.wheelbase / math.tan(self.max_steer_angle)
+        w_max = abs(v) / Rmin
+        w_eff = max(-w_max, min(w_max, w))
+
+        # 3) 计算等效转角（天然不超限）
+        delta = math.atan(self.wheelbase * w_eff / v)
+
+        # 4) 兜底限幅
+        delta = max(-self.max_steer_angle,
+                    min(self.max_steer_angle, delta))
+
+        # 5) 变化率限制（步进电机友好）
+        max_step = math.radians(10.0)  # 按控制周期调，10° 比较温和
+        delta = max(self.current_delta - max_step,
+                    min(self.current_delta + max_step, delta))
+
+        self.current_delta = delta
+        return delta
 
     # ==================遥控触发 保存航向修正量 ================================================
     def _finalize_calibration(self):

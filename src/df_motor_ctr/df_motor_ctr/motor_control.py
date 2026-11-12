@@ -470,7 +470,7 @@ class channel_MBRTU(Node):
             return {"left_rpm": self.l_rpm, "right_rpm": self.r_rpm}
 
 
-    # ROS2 回调
+    # ROS2 回调   需要对速度和专项角速度进行互锁限制，
     def _joy_state_callback(self, msg: JoyState):
         """遥控触发的各个通道的数值回调"""
         raw_channels = [
@@ -490,9 +490,11 @@ class channel_MBRTU(Node):
         if self.last_target_linespeed_l != self.target_linespeed_l or self.last_target_linespeed_r != self.target_linespeed_r :
             if self._speed_dirty == False:
                 # 包含方向
-
+                # 线速度转转速
                 left_rpm = self.linear_velocity_to_rpm(self.target_linespeed_l)
                 right_rpm = self.linear_velocity_to_rpm(self.target_linespeed_r)
+                # 根据线速度进行角速度限幅
+                # delta = self.cmd_vel_to_delta(left_rpm, right_rpm)
 
                 self.target_l_rpm = -max(-self.max_rpm, min(self.max_rpm, left_rpm))
                 self.target_r_rpm = -max(-self.max_rpm, min(self.max_rpm, right_rpm))
