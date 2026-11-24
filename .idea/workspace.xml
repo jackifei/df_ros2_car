@@ -2,11 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9a9133e0-1172-4fee-ad77-a99bfcfbf683" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/df_ros2_car.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/df_ros2_car.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/config/front_steering.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/config/front_steering.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/front_steering_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/front_steering_test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -120,6 +117,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
+        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-PY-261.27258.51" />
         <option value="bundled-python-sdk-84eaadda3698-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.27258.51" />
       </set>
     </attachedChunks>
@@ -133,6 +131,7 @@
       <updated>1794401800390</updated>
       <workItem from="1794401801393" duration="1990000" />
       <workItem from="1794409314823" duration="1675000" />
+      <workItem from="1795502028883" duration="1995000" />
     </task>
     <servers />
   </component>
