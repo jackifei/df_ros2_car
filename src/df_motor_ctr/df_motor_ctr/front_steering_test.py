@@ -31,6 +31,8 @@ from sensor_msgs.msg import Imu, JointState, Joy
 from std_msgs.msg import Bool, Float64, Float64MultiArray
 from df_joy_bridge.msg import JoyState
 
+from bisect import bisect_left
+
 # ---- ZDT(Emm) MODBUS 寄存器地址 ----
 REG_ENABLE = 0xF3        # 电机使能（2 寄存器）
 REG_POS_PARAMS = 0xF1    # 位置模式参数：方向/加速度、速度、运动模式/同步标志
@@ -92,7 +94,7 @@ class FrontSteeringNode(Node):
 
         # ==================== 位置 / 归中补偿参数 ====================
         # center_pos: 车轮回正时对应的电机绝对位置（脉冲数）。零点=左转向极限。
-        self.declare_parameter('center_pos', -1600)
+        self.declare_parameter('center_pos', -8000)
 
         # 每度转向角对应的电机脉冲数。默认 16 细分：3200 脉冲/圈 => 3200/360。
         # 若转向机构有减速比，按实车标定后修改。
@@ -376,7 +378,7 @@ class FrontSteeringNode(Node):
             self.get_logger().error(f'前轮转向串口打开失败: {exc}')
             return False
 
-    # =====================端口操作=============================================
+    # ===================== 端口操作 =============================================
     def close_port(self):
         """关闭串口。"""
         if self.state == 'close':
@@ -857,6 +859,7 @@ class FrontSteeringNode(Node):
         switch06 = msg.switch06
         switch07 = msg.switch07
 
+        # 增加开关状态，用来启动定速前进
 
         linear_x = raw_channels[2]
         angular_z = raw_channels[0]
@@ -866,7 +869,7 @@ class FrontSteeringNode(Node):
 
         self.get_logger().info(f'线速度={linear_x:.3F} 角速度={angular_z:.3F} 转向角={delta:.3F} 脉冲数={pulse}')
 
-        self._current_target_pulses = -pulse
+        self._current_target_pulses = pulse
         # 值改变发送一次标志位
         if self._pos_last_ != self._current_target_pulses and self._pos_change_trig == False:
             self._pos_change_trig = True
@@ -885,6 +888,7 @@ class FrontSteeringNode(Node):
 
     # ==================twist转换成前轮转向角 ================================================
     """线速度限制角速度，互相锁定速度，方便原地掉头等"""
+    """互锁计算，前轮转向角和线速度互关"""
     def cmd_vel_to_delta_(self, linear_x, angular_z):
         """对输入的线速度和角速度进行限幅调整"""
         v, w = float(linear_x), float(angular_z)
@@ -947,10 +951,12 @@ class FrontSteeringNode(Node):
 
         # 查表 → 绝对脉冲
         target = self._interp_pulse(deg)
+        # self.get_logger().info(f'映射表脉冲：{target}')
 
         # 软限位兜底
         target = max(self.min_pulse, min(self.max_pulse, target))
         return target
+    # 映射表的插值计算
     def _interp_pulse(self, deg: float) -> int:
         """
         根据前轮角度 deg（deg），在映射表上插值得到电机目标位置（脉冲）。
@@ -965,16 +971,10 @@ class FrontSteeringNode(Node):
         if deg >= xs[-1]:
             return int(round(ys[-1]))
 
-        # 表内：找区间做线性插值
-        for i in range(len(xs) - 1):
-            d0, d1 = xs[i], xs[i + 1]
-            if d0 <= deg <= d1:
-                if d1 == d0:
-                    return int(round(ys[i]))
-                t = (deg - d0) / (d1 - d0)
-                return int(round(ys[i] + t * (ys[i + 1] - ys[i])))
-
-        return int(round(ys[-1]))
+        i = bisect_left(xs, deg) - 1  # 比 bisect_right 更贴合原逻辑
+        x0 = xs[i]
+        t = (deg - x0) / (xs[i + 1] - x0)
+        return round(ys[i] + t * (ys[i + 1] - ys[i]))
 
     # ==================================================================
 
@@ -982,7 +982,7 @@ class FrontSteeringNode(Node):
 
 
 
-    # ==================遥控触发 保存航向修正量 ================================================
+    # ================== 遥控触发 保存航向修正量 ================================================
     def _finalize_calibration(self):
         if self._imu_fault or not self._imu_received:
             self.get_logger().warn('航向修正失败：IMU 不可用，未保存补偿')
@@ -1011,7 +1011,7 @@ class FrontSteeringNode(Node):
             f'航向修正完成：center_pos {self.center_pos - offset} -> '
             f'{self.center_pos}（偏移 {offset}）')
 
-    # ===================读取和保存补偿位置===============================================
+    # =================== 读取和保存补偿位置 ===============================================
     """读取补偿位置"""
     def _load_center_pos(self, default):
         path = Path(self._calibration_file).expanduser()

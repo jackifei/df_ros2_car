@@ -9,13 +9,14 @@
     # ---------------- 车辆 / 轮子参数 ----------------
     wheelbase: 0.7          # 前后轴距
     track_width: 0.74        # 轮距，左右前轮中心距离，单位 m
+
     # ===== 车辆几何 =====
     wheel_diameter_m: 0.255   # 后轮直径（米）
     max_linear_velocity: 0.5  # 最高线速度（米/秒），低速车限速，超出会被限幅
 
-    max_steer_angle_deg: 30.0         # 软件最大前轮转角，单位 deg，必须小于机械极限（留 3~5° 余量）
+    steering_angle_limit_deg: 45.0
+    max_steer_angle_deg: 40.0   # 软件最大前轮转角，单位 deg，必须小于机械极限（留 3~5° 余量）
     max_steer_angle: 0.5236     # 最大转向角的弧度值
-
 
     # ===== 低速保护 =====
     min_speed: 0.15                   # 低于此线速度进入低速保护，单位 m/s
@@ -26,22 +27,24 @@
     max_delta_step_deg: 20.0          # 每个控制周期前轮转角最大变化量，单位 deg/周期
 
     # ===== 步进电机 / 脉冲映射 =====
-#    zero_pulse: -1600                     # 前轮直行（delta=0）时的绝对脉冲零位
-    steer_sign: 1.0                   # +1 或 -1，标定“正 delta 是否对应脉冲增加方向”
+    # zero_pulse: -1600           # 前轮直行（delta=0）时的绝对脉冲零位
+    steer_sign: 1.0               # +1 或 -1，标定“正 delta 是否对应脉冲增加方向”
     min_pulse: 0                  # 机械软限位下限（绝对脉冲）
-    max_pulse: 30000                    # 机械软限位上限（绝对脉冲）
+    max_pulse: 30000              # 机械软限位上限（绝对脉冲）
 
-    # 映射表：[前轮角度(deg), 相对零位的脉冲]
-    steer_table_motordeg: [0.0,   4000.0, 6000.0, 8000.0, 10000.0, 12000.0, 14000.0] # 电机角度
-    steer_table_wheeldeg: [-30.0, -20.0, -10.0, 0.0,      10.0, 20.0,     30.0]  # 车轮角度
+    # 映射表：[前轮角度(deg), 相对零位的脉冲]，不取端头，留有空间
+    steer_table_motordeg: [-2000.0, -4000.0, -6000.0, -8000.0, -10000.0, -12000.0, -14000.0] # 电机角度
+    steer_table_wheeldeg: [-40.0,   -25.0,   -10.0,   0.0,     10.0,     25.0,      40.0]  # 车轮角度
 
     # ---- 位置 / 归中补偿参数 ----
-    center_pos: -8000            # 车轮回正对应的电机绝对位置（脉冲数），零点=左转向极限
+    center_pos: -8000           # 车轮回正对应的电机绝对位置（脉冲数），零点=左转向极限,此项参数需要和机械结构搭配
+
     pulses_per_degree: 8.8889   # 每度转向角对应脉冲数（默认 16 细分：3200/360）
-    steering_angle_limit_deg: 30.0
+
     steering_sign: 1.0          # 转向方向反了改成 -1.0
-    pos_speed_rpm: 500          # 定位速度
-    pos_accel: 225              # 定位加速度
+    pos_speed_rpm: 1000         # 定位速度
+    pos_accel: 240              # 定位加速度
+
     home_mode: 2                # 2 = 无限位碰撞回零
 
     # ---- 航向修正标定参数 ----
@@ -66,6 +69,7 @@
     heading_kp: 0.8
     heading_ki: 0.001
     heading_kd: 0.0
+
     heading_correction_sign: -1.0
     heading_correction_limit_deg: 8.0
     heading_integral_limit_deg: 5.0
