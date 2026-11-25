@@ -129,6 +129,13 @@ class JoyBridgeNode(Node):
         out.switch06 = self._switch_state(us_values[SWITCH_CHANNELS_1])
         out.switch07 = self._switch_state(us_values[SWITCH_CHANNELS_2])
 
+
+        # 需要添加开关状态，用来打开以后，固定前进速度，方便调试
+        # if out.switch07:
+        #     out.ch01 = us_values[0]
+
+
+
         self._publisher.publish(out)
 
 
