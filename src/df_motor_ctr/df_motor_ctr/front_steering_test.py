@@ -352,7 +352,7 @@ class FrontSteeringNode(Node):
         try:
             self.ser = ModbusSerialClient(
                 port=self._port,
-                baudrate=115200,
+                baudrate=256000,
                 parity='N',
                 stopbits=1,
                 bytesize=8,
@@ -865,9 +865,9 @@ class FrontSteeringNode(Node):
         angular_z = raw_channels[0]
         # 根据线速度和角速度以及车架计算前轮转向角
         delta  = self.cmd_vel_to_delta_(linear_x=linear_x,angular_z=angular_z)
-        pulse = self.delta_to_pulse(delta)
+        pulse,deg = self.delta_to_pulse(delta)
 
-        self.get_logger().info(f'线速度={linear_x:.3F} 角速度={angular_z:.3F} 转向角={delta:.3F} 脉冲数={pulse}')
+        self.get_logger().info(f'线速度={linear_x:.3F} 角速度={angular_z:.3F} 转向角={deg:.2F} 脉冲数={pulse}')
 
         self._current_target_pulses = pulse
         # 值改变发送一次标志位
@@ -955,7 +955,7 @@ class FrontSteeringNode(Node):
 
         # 软限位兜底
         target = max(self.min_pulse, min(self.max_pulse, target))
-        return target
+        return target,deg
     # 映射表的插值计算
     def _interp_pulse(self, deg: float) -> int:
         """
