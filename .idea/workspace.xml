@@ -5,6 +5,8 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/config/front_steering.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/config/front_steering.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/front_steering_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/df_motor_ctr/front_steering_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/df_motor_ctr/launch/front_steering_test.launch.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/df_motor_ctr/launch/front_steering_test.launch.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/imu_ros2_device/imu_ros2_device/ybimu_driver.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/imu_ros2_device/imu_ros2_device/ybimu_driver.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -136,6 +138,7 @@
       <workItem from="1795588780417" duration="10675000" />
       <workItem from="1795673627378" duration="3220000" />
       <workItem from="1795684387765" duration="2610000" />
+      <workItem from="1795749253016" duration="7479000" />
     </task>
     <servers />
   </component>

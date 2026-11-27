@@ -24,7 +24,7 @@ class ybimu_driver(Node):
 
 
     def init_topic(self):
-        port_list = ["/dev/ttyUSB2"]
+        port_list = ["/dev/ttyUSB3"]
         for port in port_list:
             try:
                 self.robot = YbImuSerial(port)
@@ -44,7 +44,7 @@ class ybimu_driver(Node):
         self.eulerPublisher = self.create_publisher(Float32MultiArray, "euler", 100)
 
         # create timer
-        self.timer = self.create_timer(0.1, self.pub_data)
+        self.timer = self.create_timer(0.02, self.pub_data)
 
 
     # pub data

@@ -275,8 +275,8 @@ class FrontSteeringNode(Node):
         self._comm_thread = threading.Thread(target=self._loop_start, daemon=True)
 
         # # 订阅IMU话题
-        # self._imu_sub = self.create_subscription(
-        #     Imu, self._imu_topic, self._imu_callback, 10)
+        self._imu_sub = self.create_subscription(
+            Imu, self._imu_topic, self._imu_callback, 10)
 
         # =====================话题=============================================
         # ---- 订阅，订阅的阿克曼控制器发下的前轮转向角度话题 50HZ ----
@@ -667,10 +667,10 @@ class FrontSteeringNode(Node):
             if abs(math.degrees(delta)) > self._yaw_jump_max_deg:
                 self._handle_invalid_imu(now)
                 return
-
+        # 航向角滤波器，得到中指滤波和一阶低通滤波器之后的数据
         yaw_filtered = self._filter_yaw(yaw)
         self._current_yaw = yaw_filtered
-        self._accept_valid_imu(now, yaw_filtered)
+        # self._accept_valid_imu(now, yaw_filtered)
 
     @staticmethod
     def _yaw_from_quaternion(x, y, z, w):
@@ -867,7 +867,8 @@ class FrontSteeringNode(Node):
         delta  = self.cmd_vel_to_delta_(linear_x=linear_x,angular_z=angular_z)
         pulse,deg = self.delta_to_pulse(delta)
 
-        self.get_logger().info(f'线速度={linear_x:.3F} 角速度={angular_z:.3F} 转向角={deg:.2F} 脉冲数={pulse}')
+        self.get_logger().info(f'线速度={linear_x:.2F} 角速度={angular_z:.2F} 转向角={deg:.2F} 脉冲数={pulse}')
+        self.get_logger().info(f'航向={self._current_yaw:.3F}')
 
         self._current_target_pulses = pulse
         # 值改变发送一次标志位
